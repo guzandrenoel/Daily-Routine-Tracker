@@ -1,213 +1,209 @@
-import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, View, Pressable } from "react-native";
-import Svg, { Circle } from "react-native-svg";
-import { colors } from "../styles/theme";
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { lightTheme, darkTheme } from '../styles/theme';
 
-/* ---------- Helpers ---------- */
 function formatFullDate(date) {
   return date.toLocaleDateString(undefined, {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
-function getMiniDays(centerDate, count = 5) {
-  // returns e.g. Thu Fri Sat Sun Mon around the selected date
-  // count should be odd, like 5
-  const half = Math.floor(count / 2);
+function get5DayStrip(centerDate) {
   const days = [];
-  for (let i = -half; i <= half; i++) {
+  for (let offset = -2; offset <= 2; offset++) {
     const d = new Date(centerDate);
-    d.setDate(centerDate.getDate() + i);
+    d.setDate(centerDate.getDate() + offset);
     days.push(d);
   }
   return days;
 }
 
-/* ---------- Progress Ring ---------- */
-function ProgressRing({ percent, size = 130, stroke = 14 }) {
-  const clamped = Math.max(0, Math.min(percent, 100));
-  const radius = (size - stroke) / 2;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - (circumference * clamped) / 100;
-
+function ThemePill({ isDarkMode, onToggle, colors: c }) {
   return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size}>
-        <Circle
-          cx={cx}
-          cy={cy}
-          r={radius}
-          stroke={colors.border}
-          strokeWidth={stroke}
-          fill="none"
-          opacity={0.25}
+    <Pressable
+      onPress={onToggle}
+      style={[
+        styles.pill,
+        {
+          backgroundColor: c.surface,
+          borderColor: c.border,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.pillThumb,
+          {
+            backgroundColor: c.accent,
+            transform: [{ translateX: isDarkMode ? 26 : 0 }],
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={isDarkMode ? 'weather-night' : 'white-balance-sunny'}
+          size={16}
+          color="#fff"
         />
-        <Circle
-          cx={cx}
-          cy={cy}
-          r={radius}
-          stroke={colors.accent}
-          strokeWidth={stroke}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={dashOffset}
-          originX={cx}
-          originY={cy}
-          rotation={-90}
-        />
-      </Svg>
-
-      <View style={styles.ringCenter}>
-        <Text style={styles.ringPercent}>{`${Math.round(clamped)}%`}</Text>
-        <Text style={styles.ringLabel}>Completed</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
-/* ---------- Home Screen ---------- */
-export default function HomeScreen({ user, routines = [] }) {
+export default function HomeScreen({ user, routines = [], isDarkMode, onToggleTheme }) {
+  const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
+
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const days = useMemo(() => get5DayStrip(selectedDate), [selectedDate]);
 
   const total = routines.length;
   const done = routines.filter((r) => r.done).length;
-
-  // ✅ if total is 0, ring is EMPTY
-  const percent = total === 0 ? 0 : (done / total) * 100;
-
-  const miniDays = useMemo(() => getMiniDays(selectedDate, 5), [selectedDate]);
+  const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Good morning, {user?.username || "User"}!</Text>
-      <Text style={styles.subtext}>{formatFullDate(selectedDate)}</Text>
+    <View style={[styles.container, { backgroundColor: c.background }]}>
+      <View style={styles.headerRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.heading, { color: c.textPrimary }]}>
+            Good day, {user?.username}
+          </Text>
+          <Text style={[styles.subtext, { color: c.textSecondary }]}>
+            {formatFullDate(selectedDate)}
+          </Text>
+        </View>
 
-      {/* Mini Calendar Strip */}
-      <View style={styles.calendarCard}>
-        {miniDays.map((d) => {
-          const isSelected =
-            d.toDateString() === selectedDate.toDateString();
+        {/* ✅ pill toggle */}
+        <ThemePill isDarkMode={isDarkMode} onToggle={onToggleTheme} colors={c} />
+      </View>
+
+      <View style={[styles.calendarWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
+        {days.map((d) => {
+          const isSelected = d.toDateString() === selectedDate.toDateString();
+          const dow = d.toLocaleDateString(undefined, { weekday: 'short' });
+          const dayNum = d.getDate();
 
           return (
             <Pressable
               key={d.toISOString()}
               onPress={() => setSelectedDate(d)}
-              style={[styles.dayPill, isSelected && styles.dayPillSelected]}
+              style={[
+                styles.dayChip,
+                { borderColor: c.border, backgroundColor: c.surface },
+                isSelected && { backgroundColor: c.accent, borderColor: c.accent },
+              ]}
             >
-              <Text style={[styles.dayName, isSelected && styles.dayNameSelected]}>
-                {d.toLocaleDateString(undefined, { weekday: "short" })}
+              <Text style={[styles.dayDow, { color: c.textSecondary }, isSelected && { color: '#fff' }]}>
+                {dow}
               </Text>
-              <Text style={[styles.dayNum, isSelected && styles.dayNumSelected]}>
-                {d.getDate()}
+              <Text style={[styles.dayNum, { color: c.textPrimary }, isSelected && { color: '#fff' }]}>
+                {dayNum}
               </Text>
             </Pressable>
           );
         })}
       </View>
 
-      {/* Progress Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Today's Progress</Text>
+      <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Today's Progress</Text>
 
         <View style={styles.progressRow}>
-          <ProgressRing percent={percent} />
+          <View style={[styles.ringOuter, { borderColor: c.border }]}>
+            <View style={[styles.ringInner, { backgroundColor: c.surface }]}>
+              <Text style={[styles.ringPct, { color: c.textPrimary }]}>{percent}%</Text>
+              <Text style={[styles.ringSub, { color: c.textSecondary }]}>Completed</Text>
+            </View>
+          </View>
 
-          <View style={styles.rightCol}>
-            <Text style={styles.statNumber}>{done}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+          <View style={{ flex: 1, marginLeft: 16 }}>
+            <Text style={[styles.bigRight, { color: c.accent }]}>{percent}%</Text>
 
-            <View style={{ height: 14 }} />
-
-            <Text style={styles.statNumber}>{Math.max(total - done, 0)}</Text>
-            <Text style={styles.statLabel}>Remaining</Text>
+            {total === 0 ? (
+              <>
+                <Text style={[styles.meta, { color: c.textSecondary }]}>0 completed</Text>
+                <Text style={[styles.meta, { color: c.textSecondary }]}>0 remaining</Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.meta, { color: c.textSecondary }]}>{done} completed</Text>
+                <Text style={[styles.meta, { color: c.textSecondary }]}>{Math.max(total - done, 0)} remaining</Text>
+              </>
+            )}
           </View>
         </View>
-
-        {total === 0 && (
-          <Text style={styles.emptyHint}>
-            No routines yet.
-          </Text>
-        )}
       </View>
     </View>
   );
 }
 
-/* ---------- Styles ---------- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingTop: 56,
-    paddingHorizontal: 18,
-  },
+  container: { flex: 1, paddingTop: 56, paddingHorizontal: 18 },
 
-  heading: { fontSize: 28, fontWeight: "900", color: colors.textPrimary },
-  subtext: { marginTop: 6, color: colors.textSecondary, fontWeight: "700" },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  heading: { fontSize: 28, fontWeight: '800' },
+  subtext: { marginTop: 6, fontSize: 14, fontWeight: '600' },
 
-  calendarCard: {
-    marginTop: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  dayPill: {
+  // ✅ pill toggle styles
+  pill: {
     width: 58,
-    paddingVertical: 10,
+    height: 32,
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.03)",
-  },
-  dayPillSelected: {
-    backgroundColor: colors.accent,
-  },
-  dayName: { fontSize: 12, fontWeight: "800", color: colors.textSecondary },
-  dayNameSelected: { color: "#fff" },
-  dayNum: { marginTop: 6, fontSize: 16, fontWeight: "900", color: colors.textPrimary },
-  dayNumSelected: { color: "#fff" },
-
-  card: {
-    marginTop: 18,
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    padding: 3,
+    justifyContent: 'center',
   },
-  cardTitle: { fontWeight: "900", color: colors.textPrimary, fontSize: 18 },
+  pillThumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  progressRow: {
+  calendarWrap: {
     marginTop: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    padding: 12,
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
-
-  ringCenter: {
-    position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
+  dayChip: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  ringPercent: { fontSize: 26, fontWeight: "900", color: colors.textPrimary },
-  ringLabel: { marginTop: 2, fontSize: 12, fontWeight: "700", color: colors.textSecondary },
+  dayDow: { fontSize: 12, fontWeight: '700' },
+  dayNum: { marginTop: 2, fontSize: 18, fontWeight: '900' },
 
-  rightCol: { alignItems: "flex-start" },
-  statNumber: { fontSize: 26, fontWeight: "900", color: colors.textPrimary },
-  statLabel: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
+  card: { marginTop: 16, borderRadius: 18, padding: 16, borderWidth: 1 },
+  cardTitle: { fontSize: 20, fontWeight: '900' },
 
-  emptyHint: { marginTop: 14, color: colors.textSecondary, fontWeight: "700" },
+  progressRow: { flexDirection: 'row', marginTop: 14, alignItems: 'center' },
+
+  ringOuter: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringInner: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringPct: { fontSize: 20, fontWeight: '900' },
+  ringSub: { marginTop: 2, fontSize: 12, fontWeight: '700' },
+
+  bigRight: { fontSize: 42, fontWeight: '900' },
+  meta: { marginTop: 6, fontSize: 14, fontWeight: '700' },
 });
