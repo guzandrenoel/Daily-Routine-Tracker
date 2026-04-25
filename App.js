@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import TabNavigator from './tabs/TabNavigator';
-import styles from './styles/AppStyles';
+import createAppStyles from './styles/AppStyles';
+import { lightTheme } from './styles/theme';
 
 export default function App() {
+  const styles = useMemo(() => createAppStyles(lightTheme.colors), []);
   const [showSplash, setShowSplash] = useState(true);
   const [taglineWidth, setTaglineWidth] = useState(0);
   const splashOpacity = useRef(new Animated.Value(0)).current;
@@ -189,7 +191,7 @@ export default function App() {
   return (
     <>
       <TabNavigator />
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </>
   );
 }
