@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
 import TabNavigator from './tabs/TabNavigator';
+import AuthScreen from './auth/AuthScreen';
+
 import createAppStyles from './styles/AppStyles';
 import { lightTheme } from './styles/theme';
 import { playIntroSound, stopIntroSound } from './utils/soundEffects';
@@ -10,6 +13,9 @@ export default function App() {
   const styles = useMemo(() => createAppStyles(lightTheme.colors), []);
   const [showSplash, setShowSplash] = useState(true);
   const [taglineWidth, setTaglineWidth] = useState(0);
+
+  const [user, setUser] = useState(null);
+
   const splashOpacity = useRef(new Animated.Value(0)).current;
   const splashScale = useRef(new Animated.Value(0.96)).current;
   const splashTranslateY = useRef(new Animated.Value(18)).current;
@@ -19,30 +25,13 @@ export default function App() {
   const descriptionTwoTranslateY = useRef(new Animated.Value(12)).current;
   const accentTravel = useRef(new Animated.Value(0)).current;
 
-  const handleSplashPress = () => {
-    setShowSplash(false);
-  };
+  const handleSplashPress = () => setShowSplash(false);
 
   useEffect(() => {
     Animated.parallel([
-      Animated.spring(splashOpacity, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 9,
-        tension: 55,
-      }),
-      Animated.spring(splashScale, {
-        toValue: 1,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 50,
-      }),
-      Animated.spring(splashTranslateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        friction: 8,
-        tension: 55,
-      }),
+      Animated.spring(splashOpacity, { toValue: 1, useNativeDriver: true, friction: 9, tension: 55 }),
+      Animated.spring(splashScale, { toValue: 1, useNativeDriver: true, friction: 8, tension: 50 }),
+      Animated.spring(splashTranslateY, { toValue: 0, useNativeDriver: true, friction: 8, tension: 55 }),
     ]).start();
 
     const descriptionTimer = setTimeout(() => {
@@ -53,12 +42,7 @@ export default function App() {
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(descriptionTranslateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          friction: 8,
-          tension: 50,
-        }),
+        Animated.spring(descriptionTranslateY, { toValue: 0, useNativeDriver: true, friction: 8, tension: 50 }),
       ]).start();
     }, 780);
 
@@ -70,12 +54,7 @@ export default function App() {
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(descriptionTwoTranslateY, {
-          toValue: 0,
-          useNativeDriver: true,
-          friction: 8,
-          tension: 50,
-        }),
+        Animated.spring(descriptionTwoTranslateY, { toValue: 0, useNativeDriver: true, friction: 8, tension: 50 }),
       ]).start();
     }, 1780);
 
@@ -125,7 +104,6 @@ export default function App() {
       void playIntroSound();
       return;
     }
-
     void stopIntroSound();
   }, [showSplash]);
 
@@ -139,10 +117,7 @@ export default function App() {
         <Animated.View
           style={[
             styles.centerContent,
-            {
-              opacity: splashOpacity,
-              transform: [{ scale: splashScale }, { translateY: splashTranslateY }],
-            },
+            { opacity: splashOpacity, transform: [{ scale: splashScale }, { translateY: splashTranslateY }] },
           ]}
         >
           <View style={styles.heroBlock}>
@@ -152,15 +127,13 @@ export default function App() {
             </View>
 
             <Text style={styles.brand}>DayFlow</Text>
+
             <View style={styles.taglineWrap} onLayout={(event) => setTaglineWidth(event.nativeEvent.layout.width)}>
               <Animated.View
                 pointerEvents="none"
                 style={[
                   styles.taglineAccent,
-                  {
-                    opacity: taglineWidth ? 1 : 0,
-                    transform: [{ translateX: travelTranslateX }],
-                  },
+                  { opacity: taglineWidth ? 1 : 0, transform: [{ translateX: travelTranslateX }] },
                 ]}
               />
               <View style={styles.taglineWordsRow}>
@@ -169,29 +142,14 @@ export default function App() {
                 <Text style={styles.taglineWord}>PROGRESS.</Text>
               </View>
             </View>
+
             <View style={styles.dividerTrack} />
-            <Animated.Text
-              style={[
-                styles.description,
-                styles.descriptionDelayed,
-                {
-                  opacity: descriptionOpacity,
-                  transform: [{ translateY: descriptionTranslateY }],
-                },
-              ]}
-            >
+
+            <Animated.Text style={[styles.description, styles.descriptionDelayed, { opacity: descriptionOpacity, transform: [{ translateY: descriptionTranslateY }] }]}>
               Create consistent routines.
             </Animated.Text>
-            <Animated.Text
-              style={[
-                styles.description,
-                styles.descriptionLater,
-                {
-                  opacity: descriptionTwoOpacity,
-                  transform: [{ translateY: descriptionTwoTranslateY }],
-                },
-              ]}
-            >
+
+            <Animated.Text style={[styles.description, styles.descriptionLater, { opacity: descriptionTwoOpacity, transform: [{ translateY: descriptionTwoTranslateY }] }]}>
               Live a better life.
             </Animated.Text>
           </View>
@@ -202,9 +160,13 @@ export default function App() {
     );
   }
 
+  if (!user) {
+    return <AuthScreen onAuth={setUser} />;
+  }
+
   return (
     <>
-      <TabNavigator />
+      <TabNavigator user={user} onLogout={() => setUser(null)} />
       <StatusBar style="dark" />
     </>
   );

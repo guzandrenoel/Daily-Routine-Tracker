@@ -7,26 +7,23 @@ import GoalsScreen from './GoalsScreen';
 import HomeScreen from './HomeScreen';
 import RemindersScreen from './RemindersScreen';
 
-function ProfileScreen() {
+function ProfileScreen({ user, onLogout }) {
   return (
     <View style={styles.placeholderScreen}>
       <Text style={styles.placeholderTitle}>Profile</Text>
-      <Text style={styles.placeholderText}>Your account details will appear here.</Text>
+      <Text style={styles.placeholderText}>Logged in as: {user?.username}</Text>
+
+      <Pressable style={styles.logoutBtn} onPress={onLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </Pressable>
     </View>
   );
 }
 
-export default function TabNavigator() {
+export default function TabNavigator({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('Home');
 
-  const ActiveScreen =
-    activeTab === 'Goals'
-      ? GoalsScreen
-      : activeTab === 'Reminders'
-        ? RemindersScreen
-        : activeTab === 'Profile'
-          ? ProfileScreen
-          : HomeScreen;
+  const [routines, setRoutines] = useState([]);
 
   const tabs = [
     { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
@@ -39,7 +36,10 @@ export default function TabNavigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        <ActiveScreen />
+        {activeTab === 'Home' && <HomeScreen user={user} routines={routines} />}
+        {activeTab === 'Goals' && <GoalsScreen routines={routines} setRoutines={setRoutines} />}
+        {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
+        {activeTab === 'Profile' && <ProfileScreen user={user} onLogout={onLogout} />}
       </View>
 
       <View style={styles.tabBar}>
@@ -51,9 +51,9 @@ export default function TabNavigator() {
               key={tab.key}
               onPress={() => {
                 if (tab.special) {
+                  setActiveTab('Goals'); // ✅ Plus jumps to Routines
                   return;
                 }
-
                 setActiveTab(tab.key);
               }}
               style={[
@@ -77,13 +77,9 @@ export default function TabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-  },
+  root: { flex: 1, backgroundColor: colors.background },
+  content: { flex: 1 },
+
   placeholderScreen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -97,18 +93,24 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: 10,
   },
-  placeholderText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
+  placeholderText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
+
+  logoutBtn: {
+    marginTop: 16,
+    backgroundColor: colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
   },
+  logoutText: { color: '#fff', fontWeight: '900' },
+
   tabBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 18,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderTopWidth: 0,
     backgroundColor: colors.surface,
     shadowColor: '#000',
@@ -117,22 +119,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     elevation: 12,
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabButtonActive: {
-    transform: [{ translateY: -1 }],
-  },
+  tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  tabButtonActive: { transform: [{ translateY: -1 }] },
+
   plusButton: {
     flex: 0,
-    width: 58,
-    height: 58,
+    width: 54,
+    height: 54,
     marginHorizontal: 8,
-    marginTop: -30,
-    borderRadius: 29,
+    marginTop: -28,
+    borderRadius: 27,
     backgroundColor: colors.accent,
     shadowColor: colors.accent,
     shadowOpacity: 0.28,
@@ -140,13 +136,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  tabLabel: {
-    marginTop: 5,
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.mutedText,
-  },
-  tabLabelActive: {
-    color: colors.accent,
-  },
+  tabLabel: { marginTop: 4, fontSize: 11, fontWeight: '600', color: colors.mutedText },
+  tabLabelActive: { color: colors.accent },
 });
