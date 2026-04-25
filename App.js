@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import TabNavigator from './tabs/TabNavigator';
 import createAppStyles from './styles/AppStyles';
 import { lightTheme } from './styles/theme';
+import { playIntroSound, stopIntroSound } from './utils/soundEffects';
 
 export default function App() {
   const styles = useMemo(() => createAppStyles(lightTheme.colors), []);
@@ -17,6 +18,10 @@ export default function App() {
   const descriptionTwoOpacity = useRef(new Animated.Value(0)).current;
   const descriptionTwoTranslateY = useRef(new Animated.Value(12)).current;
   const accentTravel = useRef(new Animated.Value(0)).current;
+
+  const handleSplashPress = () => {
+    setShowSplash(false);
+  };
 
   useEffect(() => {
     Animated.parallel([
@@ -115,9 +120,18 @@ export default function App() {
     outputRange: [0, travelDistance],
   });
 
+  useEffect(() => {
+    if (showSplash) {
+      void playIntroSound();
+      return;
+    }
+
+    void stopIntroSound();
+  }, [showSplash]);
+
   if (showSplash) {
     return (
-      <Pressable style={styles.splashContainer} onPress={() => setShowSplash(false)}>
+      <Pressable style={styles.splashContainer} onPress={handleSplashPress}>
         <StatusBar style="dark" />
         <View style={styles.glowTopLeft} />
         <View style={styles.glowBottomRight} />

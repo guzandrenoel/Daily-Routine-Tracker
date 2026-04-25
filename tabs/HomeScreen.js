@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkTheme, lightTheme } from '../styles/theme';
+import { playNightModeSound } from '../utils/soundEffects';
 
 const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const weekCellWidth = 56;
+const weekCellGap = 12;
 
 function formatDate(date) {
   return date.toLocaleDateString('en-US', {
@@ -230,12 +233,18 @@ function createStyles(colors, darkModeEnabled) {
 export default function HomeScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [isDarkModePreview, setIsDarkModePreview] = useState(false);
+  const [weekViewportWidth, setWeekViewportWidth] = useState(0);
+  const weekScrollRef = useRef(null);
   const switchProgress = useRef(new Animated.Value(0)).current;
 
   const theme = isDarkModePreview ? darkTheme.colors : lightTheme.colors;
   const styles = useMemo(() => createStyles(theme, isDarkModePreview), [theme, isDarkModePreview]);
   const weekDates = useMemo(() => getWeekDates(), []);
   const today = useMemo(() => new Date(), []);
+  const todayIndex = useMemo(
+    () => weekDates.findIndex((date) => date.toDateString() === today.toDateString()),
+    [today, weekDates]
+  );
 
   useEffect(() => {
     Animated.timing(switchProgress, {
@@ -251,12 +260,28 @@ export default function HomeScreen() {
     outputRange: [0, 30],
   });
 
+  useEffect(() => {
+    if (todayIndex < 0 || weekViewportWidth === 0 || !weekScrollRef.current) {
+      return;
+    }
+
+    const contentWidth = weekDates.length * weekCellWidth + (weekDates.length - 1) * weekCellGap + 4;
+    const maxOffsetX = Math.max(contentWidth - weekViewportWidth, 0);
+    const targetCenterX = todayIndex * (weekCellWidth + weekCellGap) + weekCellWidth / 2;
+    const targetOffsetX = Math.max(targetCenterX - weekViewportWidth / 2, 0);
+
+    weekScrollRef.current.scrollTo({ x: Math.min(targetOffsetX, maxOffsetX), animated: false });
+  }, [todayIndex, weekDates.length, weekViewportWidth]);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <View style={styles.headerSpacer} />
         <Pressable
-          onPress={() => setIsDarkModePreview((currentValue) => !currentValue)}
+          onPress={() => {
+            void playNightModeSound();
+            setIsDarkModePreview((currentValue) => !currentValue);
+          }}
           style={styles.themeSwitch}
           accessibilityRole="switch"
           accessibilityState={{ checked: isDarkModePreview }}
@@ -287,13 +312,23 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.card}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.weekRail}>
+        <ScrollView
+          ref={weekScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.weekRail}
+          onLayout={(event) => setWeekViewportWidth(event.nativeEvent.layout.width)}
+        >
           {weekDates.map((date, index) => {
             const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === today.toDateString();
 
             return (
-              <Pressable key={`${weekdayLabels[index]}-${date.getDate()}`} onPress={() => setSelectedDate(date)} style={styles.weekCell}>
+              <Pressable
+                key={`${weekdayLabels[index]}-${date.getDate()}`}
+                onPress={() => setSelectedDate(date)}
+                style={styles.weekCell}
+              >
                 <Text style={[styles.weekdayLabel, isSelected && styles.weekdayLabelActive]}>
                   {weekdayLabels[date.getDay() === 0 ? 6 : date.getDay() - 1]}
                 </Text>
