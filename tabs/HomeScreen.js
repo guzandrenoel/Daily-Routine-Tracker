@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors } from '../styles/theme';
 
 export default function HomeScreen() {
   return (
@@ -12,7 +13,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
@@ -20,12 +21,12 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.textPrimary,
     marginBottom: 10,
   },
   subtext: {
     fontSize: 16,
-    color: '#4B5563',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

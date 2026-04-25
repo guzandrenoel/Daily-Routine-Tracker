@@ -1,24 +1,40 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { colors } from '../styles/theme';
 
 import GoalsScreen from './GoalsScreen';
 import HomeScreen from './HomeScreen';
 import RemindersScreen from './RemindersScreen';
 
+function ProfileScreen() {
+  return (
+    <View style={styles.placeholderScreen}>
+      <Text style={styles.placeholderTitle}>Profile</Text>
+      <Text style={styles.placeholderText}>Your account details will appear here.</Text>
+    </View>
+  );
+}
+
 export default function TabNavigator() {
   const [activeTab, setActiveTab] = useState('Home');
 
-  const ActiveScreen = useMemo(() => {
-    if (activeTab === 'Goals') {
-      return GoalsScreen;
-    }
+  const ActiveScreen =
+    activeTab === 'Goals'
+      ? GoalsScreen
+      : activeTab === 'Reminders'
+        ? RemindersScreen
+        : activeTab === 'Profile'
+          ? ProfileScreen
+          : HomeScreen;
 
-    if (activeTab === 'Reminders') {
-      return RemindersScreen;
-    }
-
-    return HomeScreen;
-  }, [activeTab]);
+  const tabs = [
+    { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
+    { key: 'Goals', label: 'Routines', icon: 'clipboard-check-outline' },
+    { key: 'Plus', label: '', icon: 'plus', special: true },
+    { key: 'Reminders', label: 'Stats', icon: 'chart-bar' },
+    { key: 'Profile', label: 'Profile', icon: 'account-outline' },
+  ];
 
   return (
     <View style={styles.root}>
@@ -27,16 +43,31 @@ export default function TabNavigator() {
       </View>
 
       <View style={styles.tabBar}>
-        {['Home', 'Goals', 'Reminders'].map((tab) => {
-          const isActive = tab === activeTab;
+        {tabs.map((tab) => {
+          const isActive = tab.key === activeTab;
 
           return (
             <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={[styles.tabButton, isActive && styles.tabButtonActive]}
+              key={tab.key}
+              onPress={() => {
+                if (tab.special) {
+                  return;
+                }
+
+                setActiveTab(tab.key);
+              }}
+              style={[
+                styles.tabButton,
+                tab.special && styles.plusButton,
+                isActive && !tab.special && styles.tabButtonActive,
+              ]}
             >
-              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab}</Text>
+              <MaterialCommunityIcons
+                name={tab.icon}
+                size={tab.special ? 30 : 22}
+                color={tab.special ? '#FFFFFF' : isActive ? colors.accent : colors.mutedText}
+              />
+              {!tab.special && <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>}
             </Pressable>
           );
         })}
@@ -48,36 +79,74 @@ export default function TabNavigator() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: colors.background,
   },
   content: {
     flex: 1,
   },
+  placeholderScreen: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  placeholderTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 10,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
   tabBar: {
     flexDirection: 'row',
-    padding: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
+    borderTopWidth: 0,
+    backgroundColor: colors.surface,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
   },
   tabButton: {
     flex: 1,
-    borderRadius: 10,
-    paddingVertical: 12,
-    marginHorizontal: 4,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
   },
   tabButtonActive: {
-    backgroundColor: '#DBEAFE',
+    transform: [{ translateY: -1 }],
+  },
+  plusButton: {
+    flex: 0,
+    width: 54,
+    height: 54,
+    marginHorizontal: 8,
+    marginTop: -28,
+    borderRadius: 27,
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
   tabLabel: {
-    fontSize: 14,
+    marginTop: 4,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#4B5563',
+    color: colors.mutedText,
   },
   tabLabelActive: {
-    color: '#1D4ED8',
+    color: colors.accent,
   },
 });
