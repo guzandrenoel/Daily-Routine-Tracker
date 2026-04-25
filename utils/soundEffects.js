@@ -3,11 +3,10 @@ import { Audio } from 'expo-av';
 let audioModeReady = false;
 let introSound = null;
 let nightModeSound = null;
+let clickSound = null;
 
 async function ensureAudioMode() {
-  if (audioModeReady) {
-    return;
-  }
+  if (audioModeReady) return;
 
   await Audio.setAudioModeAsync({
     allowsRecordingIOS: false,
@@ -23,25 +22,34 @@ async function ensureAudioMode() {
 async function ensureIntroSound() {
   if (!introSound) {
     const { sound } = await Audio.Sound.createAsync(
-      require('../assets/SoundAssets/intro sound.mp3'),
+      require('../assets/SoundAssets/intro_sound.mp3'),
       { shouldPlay: false, isLooping: false, volume: 1 }
     );
     introSound = sound;
   }
-
   return introSound;
 }
 
 async function ensureNightModeSound() {
   if (!nightModeSound) {
     const { sound } = await Audio.Sound.createAsync(
-      require('../assets/SoundAssets/nigntmode.mp3'),
+      require('../assets/SoundAssets/nightmode.mp3'),
       { shouldPlay: false, isLooping: false, volume: 0.35 }
     );
     nightModeSound = sound;
   }
-
   return nightModeSound;
+}
+
+async function ensureClickSound() {
+  if (!clickSound) {
+    const { sound } = await Audio.Sound.createAsync(
+      require('../assets/SoundAssets/on_click_sound.mp3'),
+      { shouldPlay: false, isLooping: false, volume: 0.6 }
+    );
+    clickSound = sound;
+  }
+  return clickSound;
 }
 
 export async function playIntroSound() {
@@ -50,24 +58,15 @@ export async function playIntroSound() {
     const sound = await ensureIntroSound();
     await sound.setPositionAsync(0);
     await sound.playAsync();
-  } catch {
-    // Ignore audio playback failures to keep UI responsive.
-  }
+  } catch {}
 }
 
 export async function stopIntroSound() {
   try {
-    if (!introSound) {
-      return;
-    }
-
+    if (!introSound) return;
     const status = await introSound.getStatusAsync();
-    if (status.isLoaded && status.isPlaying) {
-      await introSound.stopAsync();
-    }
-  } catch {
-    // Ignore audio stop failures.
-  }
+    if (status.isLoaded && status.isPlaying) await introSound.stopAsync();
+  } catch {}
 }
 
 export async function playNightModeSound() {
@@ -76,7 +75,14 @@ export async function playNightModeSound() {
     const sound = await ensureNightModeSound();
     await sound.setPositionAsync(0);
     await sound.playAsync();
-  } catch {
-    // Ignore audio playback failures to keep taps responsive.
-  }
+  } catch {}
+}
+
+export async function playClickSound() {
+  try {
+    await ensureAudioMode();
+    const sound = await ensureClickSound();
+    await sound.setPositionAsync(0);
+    await sound.playAsync();
+  } catch {}
 }

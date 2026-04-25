@@ -43,16 +43,21 @@ export default function GoalsScreen({ routines, setRoutines }) {
       <FlatList
         data={routines}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.empty}>No routines yet. Add your first one above.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No routines yet. Add your first one above.</Text>
+        }
         renderItem={({ item }) => (
           <View style={[styles.card, item.done && styles.cardDone]}>
             <Pressable style={{ flex: 1 }} onPress={() => toggleDone(item.id)}>
-              <Text style={[styles.cardTitle, item.done && styles.cardTitleDone]}>{item.title}</Text>
+              <Text style={[styles.cardTitle, item.done && styles.cardTitleDone]}>
+                {item.title}
+              </Text>
               <Text style={styles.cardMeta}>{item.done ? 'Done ✅' : 'Not done'}</Text>
             </Pressable>
 
+            {/* ✅ NEW: X delete button */}
             <Pressable onPress={() => removeRoutine(item.id)} style={styles.delBtn}>
-              <Text style={styles.delText}>Del</Text>
+              <Text style={styles.delText}>×</Text>
             </Pressable>
           </View>
         )}
@@ -105,12 +110,21 @@ const styles = StyleSheet.create({
   cardTitleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   cardMeta: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
 
+  // ✅ NEW styles for X button
   delBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
   },
-  delText: { fontWeight: '900', color: colors.textPrimary },
+  delText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    lineHeight: 26,
+  },
 });

@@ -20,10 +20,9 @@ function ProfileScreen({ user, onLogout }) {
   );
 }
 
-export default function TabNavigator({ user, onLogout }) {
+export default function TabNavigator({ user, onLogout, isDarkMode, onToggleTheme }) {
   const [activeTab, setActiveTab] = useState('Home');
-
-  const [routines, setRoutines] = useState([]);
+  const [routines, setRoutines] = useState([]); // ✅ starts empty
 
   const tabs = [
     { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
@@ -36,9 +35,19 @@ export default function TabNavigator({ user, onLogout }) {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        {activeTab === 'Home' && <HomeScreen user={user} routines={routines} />}
+        {activeTab === 'Home' && (
+          <HomeScreen
+            user={user}
+            routines={routines}
+            isDarkMode={isDarkMode}
+            onToggleTheme={onToggleTheme}
+          />
+        )}
+
         {activeTab === 'Goals' && <GoalsScreen routines={routines} setRoutines={setRoutines} />}
+
         {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
+
         {activeTab === 'Profile' && <ProfileScreen user={user} onLogout={onLogout} />}
       </View>
 
@@ -51,7 +60,7 @@ export default function TabNavigator({ user, onLogout }) {
               key={tab.key}
               onPress={() => {
                 if (tab.special) {
-                  setActiveTab('Goals'); // ✅ Plus jumps to Routines
+                  setActiveTab('Goals'); // Plus jumps to routines
                   return;
                 }
                 setActiveTab(tab.key);
@@ -67,7 +76,11 @@ export default function TabNavigator({ user, onLogout }) {
                 size={tab.special ? 30 : 22}
                 color={tab.special ? '#FFFFFF' : isActive ? colors.accent : colors.mutedText}
               />
-              {!tab.special && <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>}
+              {!tab.special && (
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
+              )}
             </Pressable>
           );
         })}
