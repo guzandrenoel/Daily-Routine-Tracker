@@ -2,11 +2,7 @@ import { StyleSheet } from 'react-native';
 import { colors } from './theme';
 
 export default StyleSheet.create({
-  splashContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    overflow: 'hidden',
-  },
+  splashContainer: { flex: 1, backgroundColor: colors.background, overflow: 'hidden' },
   glowTopLeft: {
     position: 'absolute',
     top: -80,
@@ -25,18 +21,8 @@ export default StyleSheet.create({
     borderRadius: 120,
     backgroundColor: 'rgba(24, 166, 160, 0.10)',
   },
-  centerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: 76,
-    paddingBottom: 34,
-  },
-  heroBlock: {
-    alignItems: 'center',
-    width: '100%',
-  },
+  centerContent: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingTop: 90, paddingBottom: 34 },
+  heroBlock: { alignItems: 'center', width: '100%' },
   logoCard: {
     width: 148,
     height: 148,
@@ -50,80 +36,9 @@ export default StyleSheet.create({
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
-    overflow: 'hidden',
   },
-  logoPulse: {
-    position: 'absolute',
-    width: 116,
-    height: 116,
-    borderRadius: 58,
-    backgroundColor: 'rgba(24, 166, 160, 0.10)',
-  },
-  logo: {
-    width: 126,
-    height: 126,
-  },
-  brand: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    letterSpacing: -1.2,
-  },
-  taglineWrap: {
-    marginTop: 4,
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  taglineWordsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  taglineWord: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 2.2,
-    color: colors.mutedText,
-  },
-  taglineAccent: {
-    position: 'absolute',
-    top: 7,
-    left: 0,
-    width: 96,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: 'rgba(24, 166, 160, 0.22)',
-  },
-  dividerTrack: {
-    width: 52,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: colors.accentSoft,
-    marginTop: 12,
-    marginBottom: 14,
-  },
-  description: {
-    fontSize: 20,
-    lineHeight: 29,
-    textAlign: 'center',
-    color: colors.textSecondary,
-    marginBottom: 0,
-    maxWidth: 320,
-  },
-  descriptionDelayed: {
-    marginTop: 10,
-  },
-  descriptionLater: {
-    marginTop: 8,
-  },
-  tapToEnter: {
-    marginTop: 12,
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 0.4,
-    color: colors.accent,
-  },
+  logo: { width: 120, height: 120 },
+  brand: { fontSize: 42, fontWeight: '900', color: colors.textPrimary, letterSpacing: -1.2 },
+  description: { marginTop: 8, fontSize: 18, fontWeight: '700', color: colors.textSecondary },
+  tapToEnter: { fontSize: 13, fontWeight: '800', color: colors.accent },
 });

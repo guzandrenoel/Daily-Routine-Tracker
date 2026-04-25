@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../styles/theme';
 
@@ -7,26 +7,24 @@ import GoalsScreen from './GoalsScreen';
 import HomeScreen from './HomeScreen';
 import RemindersScreen from './RemindersScreen';
 
-function ProfileScreen() {
+function ProfileScreen({ user, onLogout }) {
   return (
-    <View style={styles.placeholderScreen}>
-      <Text style={styles.placeholderTitle}>Profile</Text>
-      <Text style={styles.placeholderText}>Your account details will appear here.</Text>
+    <View style={styles.profile}>
+      <Text style={styles.heading}>Profile</Text>
+      <Text style={styles.sub}>Logged in as: {user?.username}</Text>
+
+      <Pressable style={styles.logoutBtn} onPress={onLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </Pressable>
     </View>
   );
 }
 
-export default function TabNavigator() {
+export default function TabNavigator({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('Home');
 
-  const ActiveScreen =
-    activeTab === 'Goals'
-      ? GoalsScreen
-      : activeTab === 'Reminders'
-        ? RemindersScreen
-        : activeTab === 'Profile'
-          ? ProfileScreen
-          : HomeScreen;
+  // ✅ routines live here so Home/Goals/Stats can all see the same data
+  const [routines, setRoutines] = useState([]);
 
   const tabs = [
     { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
@@ -39,7 +37,10 @@ export default function TabNavigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        <ActiveScreen />
+        {activeTab === 'Home' && <HomeScreen user={user} routines={routines} />}
+        {activeTab === 'Goals' && <GoalsScreen routines={routines} setRoutines={setRoutines} />}
+        {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
+        {activeTab === 'Profile' && <ProfileScreen user={user} onLogout={onLogout} />}
       </View>
 
       <View style={styles.tabBar}>
@@ -50,10 +51,7 @@ export default function TabNavigator() {
             <Pressable
               key={tab.key}
               onPress={() => {
-                if (tab.special) {
-                  return;
-                }
-
+                if (tab.special) return setActiveTab('Goals');
                 setActiveTab(tab.key);
               }}
               style={[
@@ -65,7 +63,7 @@ export default function TabNavigator() {
               <MaterialCommunityIcons
                 name={tab.icon}
                 size={tab.special ? 30 : 22}
-                color={tab.special ? '#FFFFFF' : isActive ? colors.accent : colors.mutedText}
+                color={tab.special ? '#fff' : isActive ? colors.accent : colors.mutedText}
               />
               {!tab.special && <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>}
             </Pressable>
@@ -77,31 +75,16 @@ export default function TabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
-  },
-  placeholderScreen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  placeholderTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 10,
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
+  root: { flex: 1, backgroundColor: colors.background },
+  content: { flex: 1 },
+
+  profile: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  heading: { fontSize: 28, fontWeight: '900', color: colors.textPrimary },
+  sub: { marginTop: 8, color: colors.textSecondary, fontWeight: '700' },
+
+  logoutBtn: { marginTop: 18, backgroundColor: colors.accent, paddingVertical: 12, paddingHorizontal: 18, borderRadius: 14 },
+  logoutText: { color: '#fff', fontWeight: '900' },
+
   tabBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -109,7 +92,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 14,
-    borderTopWidth: 0,
     backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -117,15 +99,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     elevation: 12,
   },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabButtonActive: {
-    transform: [{ translateY: -1 }],
-  },
+  tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
+  tabButtonActive: { transform: [{ translateY: -1 }] },
+
   plusButton: {
     flex: 0,
     width: 54,
@@ -140,13 +116,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
-  tabLabel: {
-    marginTop: 4,
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.mutedText,
-  },
-  tabLabelActive: {
-    color: colors.accent,
-  },
+
+  tabLabel: { marginTop: 4, fontSize: 11, fontWeight: '700', color: colors.mutedText },
+  tabLabelActive: { color: colors.accent },
 });
