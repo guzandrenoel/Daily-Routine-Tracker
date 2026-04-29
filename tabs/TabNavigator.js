@@ -7,20 +7,16 @@ import GoalsScreen from './GoalsScreen';
 import HomeScreen from './HomeScreen';
 import RemindersScreen from './RemindersScreen';
 
-function ProfileScreen({ user, onLogout }) {
+function ProfileScreen() {
   return (
     <View style={styles.placeholderScreen}>
       <Text style={styles.placeholderTitle}>Profile</Text>
-      <Text style={styles.placeholderText}>Logged in as: {user?.username}</Text>
-
-      <Pressable style={styles.logoutBtn} onPress={onLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </Pressable>
+      <Text style={styles.placeholderText}>Coming soon.</Text>
     </View>
   );
 }
 
-export default function TabNavigator({ user, onLogout, isDarkMode, onToggleTheme }) {
+export default function TabNavigator({ isDarkMode, onToggleTheme }) {
   const [activeTab, setActiveTab] = useState('Home');
   const [routines, setRoutines] = useState([]); // ✅ starts empty
 
@@ -37,7 +33,6 @@ export default function TabNavigator({ user, onLogout, isDarkMode, onToggleTheme
       <View style={styles.content}>
         {activeTab === 'Home' && (
           <HomeScreen
-            user={user}
             routines={routines}
             isDarkMode={isDarkMode}
             onToggleTheme={onToggleTheme}
@@ -48,7 +43,7 @@ export default function TabNavigator({ user, onLogout, isDarkMode, onToggleTheme
 
         {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
 
-        {activeTab === 'Profile' && <ProfileScreen user={user} onLogout={onLogout} />}
+        {activeTab === 'Profile' && <ProfileScreen />}
       </View>
 
       <View style={styles.tabBar}>
@@ -77,9 +72,7 @@ export default function TabNavigator({ user, onLogout, isDarkMode, onToggleTheme
                 color={tab.special ? '#FFFFFF' : isActive ? colors.accent : colors.mutedText}
               />
               {!tab.special && (
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-                  {tab.label}
-                </Text>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
               )}
             </Pressable>
           );
@@ -107,15 +100,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   placeholderText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
-
-  logoutBtn: {
-    marginTop: 16,
-    backgroundColor: colors.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-  },
-  logoutText: { color: '#fff', fontWeight: '900' },
 
   tabBar: {
     flexDirection: 'row',

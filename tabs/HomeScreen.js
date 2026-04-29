@@ -53,7 +53,7 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
   );
 }
 
-export default function HomeScreen({ user, routines = [], isDarkMode, onToggleTheme }) {
+export default function HomeScreen({routines = [], isDarkMode, onToggleTheme }) {
   const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -68,7 +68,7 @@ export default function HomeScreen({ user, routines = [], isDarkMode, onToggleTh
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.heading, { color: c.textPrimary }]}>
-            Good day, {user?.username}
+            Good day!
           </Text>
           <Text style={[styles.subtext, { color: c.textSecondary }]}>
             {formatFullDate(selectedDate)}
