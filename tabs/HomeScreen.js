@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Circle } from 'react-native-svg';
 import { lightTheme, darkTheme } from '../styles/theme';
 
 function formatFullDate(date) {
@@ -28,10 +29,7 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
       onPress={onToggle}
       style={[
         styles.pill,
-        {
-          backgroundColor: c.surface,
-          borderColor: c.border,
-        },
+        { backgroundColor: c.surface, borderColor: c.border },
       ]}
     >
       <View
@@ -53,7 +51,7 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
   );
 }
 
-export default function HomeScreen({routines = [], isDarkMode, onToggleTheme }) {
+export default function HomeScreen({ routines = [], isDarkMode, onToggleTheme }) {
   const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -61,21 +59,29 @@ export default function HomeScreen({routines = [], isDarkMode, onToggleTheme }) 
 
   const total = routines.length;
   const done = routines.filter((r) => r.done).length;
+
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
+  // ✅ REAL progress ring math
+  const size = 110;
+  const stroke = 12;
+  const r = (size - stroke) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circumference = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(percent, 100));
+  const dashOffset = circumference - (circumference * clamped) / 100;
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.heading, { color: c.textPrimary }]}>
-            Good day!
-          </Text>
+          <Text style={[styles.heading, { color: c.textPrimary }]}>Good day!</Text>
           <Text style={[styles.subtext, { color: c.textSecondary }]}>
             {formatFullDate(selectedDate)}
           </Text>
         </View>
 
-        {/* ✅ pill toggle */}
         <ThemePill isDarkMode={isDarkMode} onToggle={onToggleTheme} colors={c} />
       </View>
 
@@ -110,8 +116,36 @@ export default function HomeScreen({routines = [], isDarkMode, onToggleTheme }) 
         <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Today's Progress</Text>
 
         <View style={styles.progressRow}>
-          <View style={[styles.ringOuter, { borderColor: c.border }]}>
-            <View style={[styles.ringInner, { backgroundColor: c.surface }]}>
+          {/* ✅ REAL ring */}
+          <View style={styles.ringWrap}>
+            <Svg width={size} height={size}>
+              {/* background ring */}
+              <Circle
+                cx={cx}
+                cy={cy}
+                r={r}
+                stroke={c.border}
+                strokeWidth={stroke}
+                fill="transparent"
+              />
+              {/* progress ring */}
+              <Circle
+                cx={cx}
+                cy={cy}
+                r={r}
+                stroke={c.accent}
+                strokeWidth={stroke}
+                fill="transparent"
+                strokeLinecap="round"
+                strokeDasharray={`${circumference} ${circumference}`}
+                strokeDashoffset={dashOffset}
+                rotation="-90"
+                originX={cx}
+                originY={cy}
+              />
+            </Svg>
+
+            <View style={[styles.ringCenter, { backgroundColor: c.surface }]}>
               <Text style={[styles.ringPct, { color: c.textPrimary }]}>{percent}%</Text>
               <Text style={[styles.ringSub, { color: c.textSecondary }]}>Completed</Text>
             </View>
@@ -119,18 +153,8 @@ export default function HomeScreen({routines = [], isDarkMode, onToggleTheme }) 
 
           <View style={{ flex: 1, marginLeft: 16 }}>
             <Text style={[styles.bigRight, { color: c.accent }]}>{percent}%</Text>
-
-            {total === 0 ? (
-              <>
-                <Text style={[styles.meta, { color: c.textSecondary }]}>0 completed</Text>
-                <Text style={[styles.meta, { color: c.textSecondary }]}>0 remaining</Text>
-              </>
-            ) : (
-              <>
-                <Text style={[styles.meta, { color: c.textSecondary }]}>{done} completed</Text>
-                <Text style={[styles.meta, { color: c.textSecondary }]}>{Math.max(total - done, 0)} remaining</Text>
-              </>
-            )}
+            <Text style={[styles.meta, { color: c.textSecondary }]}>{done} completed</Text>
+            <Text style={[styles.meta, { color: c.textSecondary }]}>{Math.max(total - done, 0)} remaining</Text>
           </View>
         </View>
       </View>
@@ -145,7 +169,6 @@ const styles = StyleSheet.create({
   heading: { fontSize: 28, fontWeight: '800' },
   subtext: { marginTop: 6, fontSize: 14, fontWeight: '600' },
 
-  // ✅ pill toggle styles
   pill: {
     width: 58,
     height: 32,
@@ -186,15 +209,14 @@ const styles = StyleSheet.create({
 
   progressRow: { flexDirection: 'row', marginTop: 14, alignItems: 'center' },
 
-  ringOuter: {
+  ringWrap: {
     width: 110,
     height: 110,
-    borderRadius: 55,
-    borderWidth: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringInner: {
+  ringCenter: {
+    position: 'absolute',
     width: 86,
     height: 86,
     borderRadius: 43,

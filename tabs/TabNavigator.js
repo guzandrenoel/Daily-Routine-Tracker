@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../styles/theme';
 
@@ -7,18 +7,60 @@ import GoalsScreen from './GoalsScreen';
 import HomeScreen from './HomeScreen';
 import RemindersScreen from './RemindersScreen';
 
-function ProfileScreen() {
-  return (
-    <View style={styles.placeholderScreen}>
-      <Text style={styles.placeholderTitle}>Profile</Text>
-      <Text style={styles.placeholderText}>Coming soon.</Text>
-    </View>
-  );
-}
+import {
+  getRoutines,
+  addRoutine,
+  toggleRoutineDone,
+  deleteRoutine,
+} from '../utils/routinesApi';
 
 export default function TabNavigator({ isDarkMode, onToggleTheme }) {
   const [activeTab, setActiveTab] = useState('Home');
-  const [routines, setRoutines] = useState([]); // ✅ starts empty
+  const [routines, setRoutines] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  async function refresh() {
+    try {
+      setLoading(true);
+      const list = await getRoutines();
+      setRoutines(list);
+    } catch (e) {
+      Alert.alert('Error', e.message ?? 'Failed to load routines');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function onAdd(title) {
+    try {
+      const created = await addRoutine(title);
+      setRoutines((prev) => [created, ...prev]);
+    } catch (e) {
+      Alert.alert('Error', e.message ?? 'Failed to add routine');
+    }
+  }
+
+  async function onToggle(id, newDone) {
+    try {
+      const updated = await toggleRoutineDone(id, newDone);
+      setRoutines((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    } catch (e) {
+      Alert.alert('Error', e.message ?? 'Failed to update routine');
+    }
+  }
+
+  async function onDelete(id) {
+    try {
+      await deleteRoutine(id);
+      setRoutines((prev) => prev.filter((r) => r.id !== id));
+    } catch (e) {
+      Alert.alert('Error', e.message ?? 'Failed to delete routine');
+    }
+  }
 
   const tabs = [
     { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
@@ -39,11 +81,25 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
           />
         )}
 
-        {activeTab === 'Goals' && <GoalsScreen routines={routines} setRoutines={setRoutines} />}
+        {activeTab === 'Goals' && (
+          <GoalsScreen
+            routines={routines}
+            loading={loading}
+            onRefresh={refresh}
+            onAdd={onAdd}
+            onToggle={onToggle}
+            onDelete={onDelete}
+          />
+        )}
 
         {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
 
-        {activeTab === 'Profile' && <ProfileScreen />}
+        {activeTab === 'Profile' && (
+          <View style={styles.placeholderScreen}>
+            <Text style={styles.placeholderTitle}>Profile</Text>
+            <Text style={styles.placeholderText}>Supabase connected ✅</Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.tabBar}>
@@ -55,7 +111,7 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
               key={tab.key}
               onPress={() => {
                 if (tab.special) {
-                  setActiveTab('Goals'); // Plus jumps to routines
+                  setActiveTab('Goals'); // plus jumps to Routines
                   return;
                 }
                 setActiveTab(tab.key);
@@ -72,7 +128,9 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
                 color={tab.special ? '#FFFFFF' : isActive ? colors.accent : colors.mutedText}
               />
               {!tab.special && (
-                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
+                <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                  {tab.label}
+                </Text>
               )}
             </Pressable>
           );
@@ -93,12 +151,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  placeholderTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 10,
-  },
+  placeholderTitle: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, marginBottom: 10 },
   placeholderText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
 
   tabBar: {
@@ -108,7 +161,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 14,
-    borderTopWidth: 0,
     backgroundColor: colors.surface,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -127,10 +179,6 @@ const styles = StyleSheet.create({
     marginTop: -28,
     borderRadius: 27,
     backgroundColor: colors.accent,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.28,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
   tabLabel: { marginTop: 4, fontSize: 11, fontWeight: '600', color: colors.mutedText },
