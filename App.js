@@ -4,7 +4,6 @@ import { Animated, Easing, Image, Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import TabNavigator from './tabs/TabNavigator';
-import AuthScreen from './auth/AuthScreen';
 
 import createAppStyles from './styles/AppStyles';
 import { lightTheme } from './styles/theme';
@@ -15,11 +14,8 @@ export default function App() {
   const styles = useMemo(() => createAppStyles(lightTheme.colors), []);
   const [showSplash, setShowSplash] = useState(true);
 
-  // ✅ GLOBAL THEME STATE
+  // ✅ GLOBAL THEME STATE (kept)
   const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // ✅ AUTH STATE (brings login back)
-  const [user, setUser] = useState(null);
 
   const [taglineWidth, setTaglineWidth] = useState(0);
   const splashOpacity = useRef(new Animated.Value(0)).current;
@@ -40,9 +36,6 @@ export default function App() {
     setIsDarkMode((v) => !v);
     await playNightModeSound();
   };
-
-  const handleAuth = (u) => setUser(u);
-  const handleLogout = () => setUser(null);
 
   useEffect(() => {
     playIntroSound();
@@ -196,24 +189,9 @@ export default function App() {
     );
   }
 
-  // ✅ AUTH FIRST, THEN APP
-  if (!user) {
-    return (
-      <>
-        <AuthScreen onAuth={handleAuth} />
-        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      </>
-    );
-  }
-
   return (
     <>
-      <TabNavigator
-        user={user}
-        onLogout={handleLogout}
-        isDarkMode={isDarkMode}
-        onToggleTheme={handleToggleTheme}
-      />
+      <TabNavigator isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
     </>
   );
