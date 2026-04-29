@@ -1,5 +1,13 @@
-import { Pressable, StyleSheet, Text, View, Alert } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../styles/theme';
 
@@ -12,12 +20,49 @@ import {
   addRoutine,
   toggleRoutineDone,
   deleteRoutine,
+  updateRoutineTitle, // ✅ NEW
 } from '../utils/routinesApi';
+
+function ProfileScreen({ onSync, syncing }) {
+  return (
+    <View style={styles.placeholderScreen}>
+      <Text style={styles.placeholderTitle}>Profile</Text>
+      <Text style={styles.placeholderText}>Supabase connected ✅</Text>
+
+      <Pressable
+        style={[styles.profileBtn, syncing && { opacity: 0.7 }]}
+        onPress={onSync}
+        disabled={syncing}
+      >
+        <Text style={styles.profileBtnText}>{syncing ? 'Syncing…' : 'Sync now'}</Text>
+      </Pressable>
+
+      <Text style={styles.smallNote}>
+        Tip: Routines are saved in your Supabase table
+      </Text>
+    </View>
+  );
+}
 
 export default function TabNavigator({ isDarkMode, onToggleTheme }) {
   const [activeTab, setActiveTab] = useState('Home');
   const [routines, setRoutines] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Modal for the "+" button
+  const [addOpen, setAddOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  const tabs = useMemo(
+    () => [
+      { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
+      { key: 'Goals', label: 'Routines', icon: 'clipboard-check-outline' },
+      { key: 'Plus', label: '', icon: 'plus', special: true },
+      { key: 'Reminders', label: 'Stats', icon: 'chart-bar' },
+      { key: 'Profile', label: 'Profile', icon: 'account-outline' },
+    ],
+    []
+  );
 
   async function refresh() {
     try {
@@ -25,7 +70,7 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
       const list = await getRoutines();
       setRoutines(list);
     } catch (e) {
-      Alert.alert('Error', e.message ?? 'Failed to load routines');
+      Alert.alert('Error', e?.message ?? 'Failed to load routines');
     } finally {
       setLoading(false);
     }
@@ -40,7 +85,7 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
       const created = await addRoutine(title);
       setRoutines((prev) => [created, ...prev]);
     } catch (e) {
-      Alert.alert('Error', e.message ?? 'Failed to add routine');
+      Alert.alert('Error', e?.message ?? 'Failed to add routine');
     }
   }
 
@@ -49,7 +94,7 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
       const updated = await toggleRoutineDone(id, newDone);
       setRoutines((prev) => prev.map((r) => (r.id === id ? updated : r)));
     } catch (e) {
-      Alert.alert('Error', e.message ?? 'Failed to update routine');
+      Alert.alert('Error', e?.message ?? 'Failed to update routine');
     }
   }
 
@@ -58,17 +103,32 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
       await deleteRoutine(id);
       setRoutines((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
-      Alert.alert('Error', e.message ?? 'Failed to delete routine');
+      Alert.alert('Error', e?.message ?? 'Failed to delete routine');
     }
   }
 
-  const tabs = [
-    { key: 'Home', label: 'Home', icon: 'home-variant-outline' },
-    { key: 'Goals', label: 'Routines', icon: 'clipboard-check-outline' },
-    { key: 'Plus', label: '', icon: 'plus', special: true },
-    { key: 'Reminders', label: 'Stats', icon: 'chart-bar' },
-    { key: 'Profile', label: 'Profile', icon: 'account-outline' },
-  ];
+  // ✅ NEW: edit title
+  async function onEditTitle(id, title) {
+    const updated = await updateRoutineTitle(id, title);
+    setRoutines((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    return updated;
+  }
+
+  function openAddModal() {
+    setNewTitle('');
+    setAddOpen(true);
+  }
+
+  function submitAdd() {
+    const t = newTitle.trim();
+    if (!t) {
+      Alert.alert('Missing', 'Type a routine name first.');
+      return;
+    }
+    onAdd(t);
+    setAddOpen(false);
+    setActiveTab('Goals');
+  }
 
   return (
     <View style={styles.root}>
@@ -89,19 +149,46 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
             onAdd={onAdd}
             onToggle={onToggle}
             onDelete={onDelete}
+            onEditTitle={onEditTitle} // ✅ NEW
           />
         )}
 
         {activeTab === 'Reminders' && <RemindersScreen routines={routines} />}
 
-        {activeTab === 'Profile' && (
-          <View style={styles.placeholderScreen}>
-            <Text style={styles.placeholderTitle}>Profile</Text>
-            <Text style={styles.placeholderText}>Supabase connected ✅</Text>
-          </View>
-        )}
+        {activeTab === 'Profile' && <ProfileScreen onSync={refresh} syncing={loading} />}
       </View>
 
+      {/* + Modal */}
+      <Modal visible={addOpen} transparent animationType="fade" onRequestClose={() => setAddOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setAddOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Add Routine</Text>
+
+            <TextInput
+              value={newTitle}
+              onChangeText={setNewTitle}
+              placeholder="e.g. Drink water"
+              placeholderTextColor={colors.mutedText}
+              style={styles.modalInput}
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={submitAdd}
+            />
+
+            <View style={styles.modalRow}>
+              <Pressable style={[styles.modalBtn, styles.modalBtnGhost]} onPress={() => setAddOpen(false)}>
+                <Text style={styles.modalBtnGhostText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={submitAdd}>
+                <Text style={styles.modalBtnPrimaryText}>Add</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Tab bar */}
       <View style={styles.tabBar}>
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
@@ -111,7 +198,7 @@ export default function TabNavigator({ isDarkMode, onToggleTheme }) {
               key={tab.key}
               onPress={() => {
                 if (tab.special) {
-                  setActiveTab('Goals'); // plus jumps to Routines
+                  openAddModal();
                   return;
                 }
                 setActiveTab(tab.key);
@@ -151,8 +238,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  placeholderTitle: { fontSize: 28, fontWeight: '800', color: colors.textPrimary, marginBottom: 10 },
-  placeholderText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center' },
+  placeholderTitle: { fontSize: 28, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 },
+  placeholderText: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', fontWeight: '700' },
+
+  profileBtn: {
+    marginTop: 16,
+    backgroundColor: colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+  },
+  profileBtnText: { color: '#fff', fontWeight: '900' },
+  smallNote: { marginTop: 14, color: colors.mutedText, fontWeight: '700', textAlign: 'center' },
 
   tabBar: {
     flexDirection: 'row',
@@ -170,7 +267,6 @@ const styles = StyleSheet.create({
   },
   tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   tabButtonActive: { transform: [{ translateY: -1 }] },
-
   plusButton: {
     flex: 0,
     width: 54,
@@ -180,7 +276,41 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     backgroundColor: colors.accent,
     elevation: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: { marginTop: 4, fontSize: 11, fontWeight: '600', color: colors.mutedText },
   tabLabelActive: { color: colors.accent },
+
+  // Modal styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  modalCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 10 },
+  modalInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: colors.textPrimary,
+    fontWeight: '700',
+  },
+  modalRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'flex-end' },
+  modalBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14 },
+  modalBtnGhost: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+  modalBtnGhostText: { color: colors.textPrimary, fontWeight: '900' },
+  modalBtnPrimary: { backgroundColor: colors.accent },
+  modalBtnPrimaryText: { color: '#fff', fontWeight: '900' },
 });
