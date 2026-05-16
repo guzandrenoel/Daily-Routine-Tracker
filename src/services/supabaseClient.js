@@ -5,7 +5,7 @@ const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.warn('Missing Supabase env vars. Check your .env file.');
+  console.warn('Missing Supabase env vars. Check .env then restart Expo with -c.');
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

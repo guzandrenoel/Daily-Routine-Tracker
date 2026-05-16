@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors } from '../styles/theme';
+import { useThemeColors } from '../styles/useThemeColors';
 
 export default function GoalsScreen({
   routines,
@@ -21,10 +21,13 @@ export default function GoalsScreen({
   onDelete,
   onEditTitle, // ✅ NEW
 }) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [title, setTitle] = useState('');
 
   // menu + modals
-  const [menuRoutine, setMenuRoutine] = useState(null); // routine object
+  const [menuRoutine, setMenuRoutine] = useState(null);
   const [statsRoutine, setStatsRoutine] = useState(null);
   const [editRoutine, setEditRoutine] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -101,9 +104,7 @@ export default function GoalsScreen({
 
         {/* Title + small status */}
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, done && styles.titleDone]}>
-            {item.title}
-          </Text>
+          <Text style={[styles.title, done && styles.titleDone]}>{item.title}</Text>
           <Text style={styles.status}>{done ? 'Done' : 'Not done'}</Text>
         </View>
 
@@ -116,7 +117,11 @@ export default function GoalsScreen({
           onPressIn={(e) => e?.stopPropagation?.()}
           style={styles.menuBtn}
         >
-          <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.textSecondary} />
+          <MaterialCommunityIcons
+            name="dots-vertical"
+            size={22}
+            color={colors.textSecondary}
+          />
         </Pressable>
       </Pressable>
     );
@@ -171,12 +176,7 @@ export default function GoalsScreen({
       />
 
       {/* MENU MODAL (Edit / Statistics / Delete) */}
-      <Modal
-        visible={!!menuRoutine}
-        transparent
-        animationType="fade"
-        onRequestClose={closeMenu}
-      >
+      <Modal visible={!!menuRoutine} transparent animationType="fade" onRequestClose={closeMenu}>
         <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
           <Pressable style={styles.menuCard} onPress={() => {}}>
             <Text style={styles.menuTitle}>{menuRoutine?.title}</Text>
@@ -213,12 +213,7 @@ export default function GoalsScreen({
       </Modal>
 
       {/* STATS MODAL */}
-      <Modal
-        visible={!!statsRoutine}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setStatsRoutine(null)}
-      >
+      <Modal visible={!!statsRoutine} transparent animationType="fade" onRequestClose={() => setStatsRoutine(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setStatsRoutine(null)}>
           <Pressable style={styles.statsCard} onPress={() => {}}>
             <Text style={styles.statsTitle}>Routine stats</Text>
@@ -230,9 +225,7 @@ export default function GoalsScreen({
 
             <View style={styles.statsRow}>
               <Text style={styles.statsLabel}>Status</Text>
-              <Text style={styles.statsValue}>
-                {statsRoutine?.done ? 'Done' : 'Not done'}
-              </Text>
+              <Text style={styles.statsValue}>{statsRoutine?.done ? 'Done' : 'Not done'}</Text>
             </View>
 
             <View style={styles.statsRow}>
@@ -248,12 +241,7 @@ export default function GoalsScreen({
       </Modal>
 
       {/* EDIT MODAL */}
-      <Modal
-        visible={!!editRoutine}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setEditRoutine(null)}
-      >
+      <Modal visible={!!editRoutine} transparent animationType="fade" onRequestClose={() => setEditRoutine(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setEditRoutine(null)}>
           <Pressable style={styles.editCard} onPress={() => {}}>
             <Text style={styles.editTitle}>Edit routine</Text>
@@ -270,17 +258,11 @@ export default function GoalsScreen({
             />
 
             <View style={styles.editRow}>
-              <Pressable
-                style={[styles.editBtn, styles.editBtnGhost]}
-                onPress={() => setEditRoutine(null)}
-              >
+              <Pressable style={[styles.editBtn, styles.editBtnGhost]} onPress={() => setEditRoutine(null)}>
                 <Text style={styles.editBtnGhostText}>Cancel</Text>
               </Pressable>
 
-              <Pressable
-                style={[styles.editBtn, styles.editBtnPrimary]}
-                onPress={submitEdit}
-              >
+              <Pressable style={[styles.editBtn, styles.editBtnPrimary]} onPress={submitEdit}>
                 <Text style={styles.editBtnPrimaryText}>Save</Text>
               </Pressable>
             </View>
@@ -291,164 +273,110 @@ export default function GoalsScreen({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, paddingTop: 56, paddingHorizontal: 18 },
-  heading: { fontSize: 30, fontWeight: '900', color: colors.textPrimary },
-  subtext: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
+function makeStyles(colors) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background, paddingTop: 56, paddingHorizontal: 18 },
+    heading: { fontSize: 30, fontWeight: '900', color: colors.textPrimary },
+    subtext: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
 
-  row: { flexDirection: 'row', gap: 10, marginTop: 14 },
-  input: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  addBtn: {
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingHorizontal: 18,
-    justifyContent: 'center',
-  },
-  addText: { color: '#fff', fontWeight: '900' },
+    row: { flexDirection: 'row', gap: 10, marginTop: 14 },
+    input: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.textPrimary,
+      fontWeight: '700',
+    },
+    addBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingHorizontal: 18, justifyContent: 'center' },
+    addText: { color: '#fff', fontWeight: '900' },
 
-  syncBtn: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  syncText: { color: colors.accent, fontWeight: '900' },
+    syncBtn: {
+      marginTop: 10,
+      alignSelf: 'flex-start',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    syncText: { color: colors.accent, fontWeight: '900' },
 
-  empty: { textAlign: 'center', marginTop: 18, color: colors.mutedText, fontWeight: '700' },
+    empty: { textAlign: 'center', marginTop: 18, color: colors.mutedText, fontWeight: '700' },
 
-  card: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 10,
-  },
-  cardDone: { backgroundColor: colors.accentTint },
+    card: {
+      flexDirection: 'row',
+      gap: 12,
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 16,
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      marginBottom: 10,
+    },
+    cardDone: { backgroundColor: colors.accentTint },
+    checkWrap: { width: 38, alignItems: 'center', justifyContent: 'center' },
 
-  checkWrap: {
-    width: 38,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    title: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
+    titleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
+    status: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
 
-  title: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
-  titleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
-  status: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
+    menuBtn: {
+      width: 42,
+      height: 42,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+    },
 
-  menuBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.surface,
-  },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      paddingHorizontal: 18,
+    },
 
-  // shared modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
-  },
+    menuCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: colors.border },
+    menuTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 },
+    menuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12 },
+    menuItemText: { fontWeight: '800', color: colors.textPrimary },
+    menuDivider: { height: 1, backgroundColor: colors.border, marginVertical: 8, opacity: 0.9 },
 
-  // menu
-  menuCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.textPrimary,
-    marginBottom: 8,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  menuItemText: { fontWeight: '800', color: colors.textPrimary },
-  menuDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-    marginVertical: 8,
-    opacity: 0.9,
-  },
+    statsCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
+    statsTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 12 },
+    statsRow: { marginBottom: 10 },
+    statsLabel: { color: colors.mutedText, fontWeight: '800' },
+    statsValue: { marginTop: 4, color: colors.textPrimary, fontWeight: '800' },
+    statsCloseBtn: { marginTop: 8, alignSelf: 'flex-end', backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+    statsCloseText: { color: '#fff', fontWeight: '900' },
 
-  // stats
-  statsCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statsTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 12 },
-  statsRow: { marginBottom: 10 },
-  statsLabel: { color: colors.mutedText, fontWeight: '800' },
-  statsValue: { marginTop: 4, color: colors.textPrimary, fontWeight: '800' },
-  statsCloseBtn: {
-    marginTop: 8,
-    alignSelf: 'flex-end',
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-  },
-  statsCloseText: { color: '#fff', fontWeight: '900' },
-
-  // edit
-  editCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  editTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 10 },
-  editInput: {
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  editRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'flex-end' },
-  editBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14 },
-  editBtnGhost: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
-  editBtnGhostText: { color: colors.textPrimary, fontWeight: '900' },
-  editBtnPrimary: { backgroundColor: colors.accent },
-  editBtnPrimaryText: { color: '#fff', fontWeight: '900' },
-});
+    editCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
+    editTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 10 },
+    editInput: {
+      backgroundColor: colors.background,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      color: colors.textPrimary,
+      fontWeight: '700',
+    },
+    editRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'flex-end' },
+    editBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14 },
+    editBtnGhost: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+    editBtnGhostText: { color: colors.textPrimary, fontWeight: '900' },
+    editBtnPrimary: { backgroundColor: colors.accent },
+    editBtnPrimaryText: { color: '#fff', fontWeight: '900' },
+  });
+}

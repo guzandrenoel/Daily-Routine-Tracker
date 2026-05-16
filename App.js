@@ -1,21 +1,27 @@
-// App.js
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Image, Pressable, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-import TabNavigator from './tabs/TabNavigator';
+import TabNavigator from './src/navigation/TabNavigator';
 
-import createAppStyles from './styles/AppStyles';
-import { lightTheme } from './styles/theme';
+import createAppStyles from './src/styles/AppStyles';
+import { lightTheme } from './src/styles/theme';
 
-import { playIntroSound, stopIntroSound, playNightModeSound } from './utils/soundEffects';
+import {
+  playIntroSound,
+  stopIntroSound,
+  playNightModeSound,
+} from './src/utils/soundEffects';
+
+import { useAtom } from 'jotai';
+import { isDarkModeAtom } from './src/store/atoms';
 
 export default function App() {
   const styles = useMemo(() => createAppStyles(lightTheme.colors), []);
   const [showSplash, setShowSplash] = useState(true);
 
-  // ✅ GLOBAL THEME STATE (kept)
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // ✅ Jotai theme atom (global)
+  const [isDarkMode, setIsDarkMode] = useAtom(isDarkModeAtom);
 
   const [taglineWidth, setTaglineWidth] = useState(0);
   const splashOpacity = useRef(new Animated.Value(0)).current;
@@ -140,17 +146,27 @@ export default function App() {
           <View style={styles.heroBlock}>
             <View style={styles.logoCard}>
               <Animated.View style={styles.logoPulse} />
-              <Image source={require('./assets/App_Logo.png')} style={styles.logo} resizeMode="contain" />
+              <Image
+                source={require('./assets/App_Logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
 
             <Text style={styles.brand}>DayFlow</Text>
 
-            <View style={styles.taglineWrap} onLayout={(e) => setTaglineWidth(e.nativeEvent.layout.width)}>
+            <View
+              style={styles.taglineWrap}
+              onLayout={(e) => setTaglineWidth(e.nativeEvent.layout.width)}
+            >
               <Animated.View
                 pointerEvents="none"
                 style={[
                   styles.taglineAccent,
-                  { opacity: taglineWidth ? 1 : 0, transform: [{ translateX: travelTranslateX }] },
+                  {
+                    opacity: taglineWidth ? 1 : 0,
+                    transform: [{ translateX: travelTranslateX }],
+                  },
                 ]}
               />
               <View style={styles.taglineWordsRow}>
@@ -191,7 +207,7 @@ export default function App() {
 
   return (
     <>
-      <TabNavigator isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />
+      <TabNavigator onToggleTheme={handleToggleTheme} />
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
     </>
   );
