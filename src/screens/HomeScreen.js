@@ -4,6 +4,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { lightTheme, darkTheme } from '../styles/theme';
 
+import { useAtomValue } from 'jotai';
+import { isDarkModeAtom, routinesStatsAtom } from '../store/atoms';
+
 function formatFullDate(date) {
   return date.toLocaleDateString(undefined, {
     weekday: 'long',
@@ -27,10 +30,7 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
   return (
     <Pressable
       onPress={onToggle}
-      style={[
-        styles.pill,
-        { backgroundColor: c.surface, borderColor: c.border },
-      ]}
+      style={[styles.pill, { backgroundColor: c.surface, borderColor: c.border }]}
     >
       <View
         style={[
@@ -51,18 +51,16 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
   );
 }
 
-export default function HomeScreen({ routines = [], isDarkMode, onToggleTheme }) {
+export default function HomeScreen({ onToggleTheme }) {
+  const isDarkMode = useAtomValue(isDarkModeAtom);
+  const { percent, done, remaining } = useAtomValue(routinesStatsAtom);
+
   const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const days = useMemo(() => get5DayStrip(selectedDate), [selectedDate]);
 
-  const total = routines.length;
-  const done = routines.filter((r) => r.done).length;
-
-  const percent = total === 0 ? 0 : Math.round((done / total) * 100);
-
-  // ✅ REAL progress ring math
+  // ring math
   const size = 110;
   const stroke = 12;
   const r = (size - stroke) / 2;
@@ -116,19 +114,9 @@ export default function HomeScreen({ routines = [], isDarkMode, onToggleTheme })
         <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Today's Progress</Text>
 
         <View style={styles.progressRow}>
-          {/* ✅ REAL ring */}
           <View style={styles.ringWrap}>
             <Svg width={size} height={size}>
-              {/* background ring */}
-              <Circle
-                cx={cx}
-                cy={cy}
-                r={r}
-                stroke={c.border}
-                strokeWidth={stroke}
-                fill="transparent"
-              />
-              {/* progress ring */}
+              <Circle cx={cx} cy={cy} r={r} stroke={c.border} strokeWidth={stroke} fill="transparent" />
               <Circle
                 cx={cx}
                 cy={cy}
@@ -154,7 +142,7 @@ export default function HomeScreen({ routines = [], isDarkMode, onToggleTheme })
           <View style={{ flex: 1, marginLeft: 16 }}>
             <Text style={[styles.bigRight, { color: c.accent }]}>{percent}%</Text>
             <Text style={[styles.meta, { color: c.textSecondary }]}>{done} completed</Text>
-            <Text style={[styles.meta, { color: c.textSecondary }]}>{Math.max(total - done, 0)} remaining</Text>
+            <Text style={[styles.meta, { color: c.textSecondary }]}>{remaining} remaining</Text>
           </View>
         </View>
       </View>
@@ -209,12 +197,7 @@ const styles = StyleSheet.create({
 
   progressRow: { flexDirection: 'row', marginTop: 14, alignItems: 'center' },
 
-  ringWrap: {
-    width: 110,
-    height: 110,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  ringWrap: { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
   ringCenter: {
     position: 'absolute',
     width: 86,
