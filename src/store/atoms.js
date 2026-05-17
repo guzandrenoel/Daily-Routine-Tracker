@@ -1,19 +1,29 @@
 import { atom } from 'jotai';
 
-// theme
+// ─── Theme ───
 export const isDarkModeAtom = atom(false);
 
-// routines list
+// ─── Routines list (titles/metadata only, no done field) ────
 export const routinesAtom = atom([]);
 
-// loading flag for syncing
+// ─── Loading flag ───
 export const routinesLoadingAtom = atom(false);
 
-// derived stats (auto updates)
+// ─── Selected date (shared between HomeScreen calendar and stats) ──
+// Stored as a JS Date object
+export const selectedDateAtom = atom(new Date());
+
+// ─── Completions for the selected date ───
+// A Set of routine_ids completed on selectedDate
+export const completionsAtom = atom(new Set());
+
+// ─── Derived stats for the SELECTED date ───
 export const routinesStatsAtom = atom((get) => {
   const routines = get(routinesAtom);
+  const completions = get(completionsAtom);
+
   const total = routines.length;
-  const done = routines.filter((r) => r.done).length;
+  const done = routines.filter((r) => completions.has(r.id)).length;
   const remaining = Math.max(total - done, 0);
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 

@@ -4,8 +4,25 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle } from 'react-native-svg';
 import { lightTheme, darkTheme } from '../styles/theme';
 
-import { useAtomValue } from 'jotai';
-import { isDarkModeAtom, routinesStatsAtom } from '../store/atoms';
+import { useAtom, useAtomValue } from 'jotai';
+import { isDarkModeAtom, routinesStatsAtom, selectedDateAtom } from '../store/atoms';
+import { useStore } from 'jotai';
+import { loadCompletionsForDate } from '../store/routinesActions';
+
+const QUOTES = [
+  'Small steps every day lead to big results.',
+  'Consistency beats perfection every time.',
+  'Your future self is watching — make them proud.',
+  "Progress, not perfection. You've got this.",
+  'One routine at a time. Keep showing up.',
+];
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning!';
+  if (h < 17) return 'Good afternoon!';
+  return 'Good evening!';
+}
 
 function formatFullDate(date) {
   return date.toLocaleDateString(undefined, {
@@ -53,12 +70,27 @@ function ThemePill({ isDarkMode, onToggle, colors: c }) {
 
 export default function HomeScreen({ onToggleTheme }) {
   const isDarkMode = useAtomValue(isDarkModeAtom);
-  const { percent, done, remaining } = useAtomValue(routinesStatsAtom);
+  const { percent, done, remaining, total } = useAtomValue(routinesStatsAtom);
+  const [selectedDate, setSelectedDateAtom] = useAtom(selectedDateAtom);
+  const store = useStore();
 
   const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const days = useMemo(() => get5DayStrip(selectedDate), [selectedDate]);
+
+  const quote = useMemo(() => QUOTES[new Date().getDay() % QUOTES.length], []);
+
+  // When user taps a different date, update the shared atom and fetch that day's completions
+  async function handleDateSelect(date) {
+    setSelectedDateAtom(date);
+    try {
+      await loadCompletionsForDate(store.get, store.set, date);
+    } catch (e) {
+      // silently fail — UI will just show stale completions
+    }
+  }
+
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   // ring math
   const size = 110;
@@ -72,17 +104,24 @@ export default function HomeScreen({ onToggleTheme }) {
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
+      {/* Header */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.heading, { color: c.textPrimary }]}>Good day!</Text>
+          <Text style={[styles.heading, { color: c.textPrimary }]}>{getGreeting()}</Text>
           <Text style={[styles.subtext, { color: c.textSecondary }]}>
             {formatFullDate(selectedDate)}
           </Text>
         </View>
-
         <ThemePill isDarkMode={isDarkMode} onToggle={onToggleTheme} colors={c} />
       </View>
 
+      {/* Motivational quote */}
+      <View style={[styles.quoteCard, { backgroundColor: c.accentTint, borderColor: c.accent }]}>
+        <MaterialCommunityIcons name="format-quote-open" size={16} color={c.accent} />
+        <Text style={[styles.quoteText, { color: c.accent }]}>{quote}</Text>
+      </View>
+
+      {/* Calendar strip */}
       <View style={[styles.calendarWrap, { backgroundColor: c.surface, borderColor: c.border }]}>
         {days.map((d) => {
           const isSelected = d.toDateString() === selectedDate.toDateString();
@@ -92,7 +131,7 @@ export default function HomeScreen({ onToggleTheme }) {
           return (
             <Pressable
               key={d.toISOString()}
-              onPress={() => setSelectedDate(d)}
+              onPress={() => handleDateSelect(d)}
               style={[
                 styles.dayChip,
                 { borderColor: c.border, backgroundColor: c.surface },
@@ -110,8 +149,18 @@ export default function HomeScreen({ onToggleTheme }) {
         })}
       </View>
 
+      {/* Progress card */}
       <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.border }]}>
-        <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Today's Progress</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={[styles.cardTitle, { color: c.textPrimary }]}>
+            {isToday ? "Today's Progress" : formatFullDate(selectedDate)}
+          </Text>
+          {!isToday && (
+            <Pressable onPress={() => handleDateSelect(new Date())}>
+              <Text style={[styles.backToToday, { color: c.accent }]}>Back to today</Text>
+            </Pressable>
+          )}
+        </View>
 
         <View style={styles.progressRow}>
           <View style={styles.ringWrap}>
@@ -132,10 +181,9 @@ export default function HomeScreen({ onToggleTheme }) {
                 originY={cy}
               />
             </Svg>
-
             <View style={[styles.ringCenter, { backgroundColor: c.surface }]}>
               <Text style={[styles.ringPct, { color: c.textPrimary }]}>{percent}%</Text>
-              <Text style={[styles.ringSub, { color: c.textSecondary }]}>Completed</Text>
+              <Text style={[styles.ringSub, { color: c.textSecondary }]}>Done</Text>
             </View>
           </View>
 
@@ -143,8 +191,17 @@ export default function HomeScreen({ onToggleTheme }) {
             <Text style={[styles.bigRight, { color: c.accent }]}>{percent}%</Text>
             <Text style={[styles.meta, { color: c.textSecondary }]}>{done} completed</Text>
             <Text style={[styles.meta, { color: c.textSecondary }]}>{remaining} remaining</Text>
+            <Text style={[styles.meta, { color: c.mutedText }]}>{total} total</Text>
           </View>
         </View>
+
+        {/* Linear bar */}
+        <View style={[styles.barTrack, { backgroundColor: c.border }]}>
+          <View style={[styles.barFill, { width: `${percent}%`, backgroundColor: c.accent }]} />
+        </View>
+        <Text style={[styles.barLabel, { color: c.mutedText }]}>
+          {percent === 100 ? '🎉 All done!' : `${100 - percent}% left to complete`}
+        </Text>
       </View>
     </View>
   );
@@ -154,61 +211,51 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 18 },
 
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  heading: { fontSize: 28, fontWeight: '800' },
-  subtext: { marginTop: 6, fontSize: 14, fontWeight: '600' },
+  heading: { fontSize: 28, fontWeight: '900' },
+  subtext: { marginTop: 4, fontSize: 13, fontWeight: '600' },
 
   pill: {
-    width: 58,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 3,
-    justifyContent: 'center',
+    width: 58, height: 32, borderRadius: 16, borderWidth: 1, padding: 3, justifyContent: 'center',
   },
   pillThumb: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
   },
 
+  quoteCard: {
+    marginTop: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    borderWidth: 1, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12,
+  },
+  quoteText: { flex: 1, fontWeight: '700', fontSize: 13, lineHeight: 19 },
+
   calendarWrap: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 18,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginTop: 14, padding: 12, borderRadius: 18, borderWidth: 1,
+    flexDirection: 'row', justifyContent: 'space-between',
   },
   dayChip: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 56, height: 56, borderRadius: 28, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center',
   },
   dayDow: { fontSize: 12, fontWeight: '700' },
   dayNum: { marginTop: 2, fontSize: 18, fontWeight: '900' },
 
-  card: { marginTop: 16, borderRadius: 18, padding: 16, borderWidth: 1 },
-  cardTitle: { fontSize: 20, fontWeight: '900' },
+  card: { marginTop: 14, borderRadius: 18, padding: 16, borderWidth: 1 },
+  cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardTitle: { fontSize: 17, fontWeight: '900', flex: 1 },
+  backToToday: { fontSize: 12, fontWeight: '800' },
 
   progressRow: { flexDirection: 'row', marginTop: 14, alignItems: 'center' },
-
   ringWrap: { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
   ringCenter: {
-    position: 'absolute',
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: 'absolute', width: 86, height: 86, borderRadius: 43,
+    alignItems: 'center', justifyContent: 'center',
   },
   ringPct: { fontSize: 20, fontWeight: '900' },
   ringSub: { marginTop: 2, fontSize: 12, fontWeight: '700' },
 
   bigRight: { fontSize: 42, fontWeight: '900' },
-  meta: { marginTop: 6, fontSize: 14, fontWeight: '700' },
+  meta: { marginTop: 5, fontSize: 13, fontWeight: '700' },
+
+  barTrack: { marginTop: 14, height: 7, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 4, minWidth: 4 },
+  barLabel: { marginTop: 6, fontSize: 12, fontWeight: '700' },
 });
