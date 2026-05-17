@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useThemeColors } from '../styles/useThemeColors';
+import { useAtomValue } from 'jotai';
+import { completionsAtom, selectedDateAtom } from '../store/atoms';
 
 export default function GoalsScreen({
   routines,
@@ -19,14 +21,17 @@ export default function GoalsScreen({
   onAdd,
   onToggle,
   onDelete,
-  onEditTitle, // ✅ NEW
+  onEditTitle,
 }) {
   const colors = useThemeColors();
   const styles = useMemo(() => makeStyles(colors), [colors]);
 
-  const [title, setTitle] = useState('');
+  const completions = useAtomValue(completionsAtom);
+  const selectedDate = useAtomValue(selectedDateAtom);
 
-  // menu + modals
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
+  const [title, setTitle] = useState('');
   const [menuRoutine, setMenuRoutine] = useState(null);
   const [statsRoutine, setStatsRoutine] = useState(null);
   const [editRoutine, setEditRoutine] = useState(null);
@@ -42,13 +47,8 @@ export default function GoalsScreen({
     setTitle('');
   }
 
-  function openMenu(routine) {
-    setMenuRoutine(routine);
-  }
-
-  function closeMenu() {
-    setMenuRoutine(null);
-  }
+  function openMenu(routine) { setMenuRoutine(routine); }
+  function closeMenu() { setMenuRoutine(null); }
 
   function openStatsFromMenu() {
     if (!menuRoutine) return;
@@ -78,20 +78,21 @@ export default function GoalsScreen({
     }
   }
 
+  const selectedDateLabel = selectedDate.toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric',
+  });
+
   const renderItem = ({ item }) => {
-    const done = !!item.done;
+    // done = whether this routine is in completions for the selected date
+    const done = completions.has(item.id);
 
     return (
       <Pressable
         onPress={() => onToggle(item.id, !done)}
         style={[styles.card, done && styles.cardDone]}
       >
-        {/* Left circle check icon */}
         <Pressable
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            onToggle(item.id, !done);
-          }}
+          onPress={(e) => { e?.stopPropagation?.(); onToggle(item.id, !done); }}
           onPressIn={(e) => e?.stopPropagation?.()}
           style={styles.checkWrap}
         >
@@ -102,26 +103,17 @@ export default function GoalsScreen({
           />
         </Pressable>
 
-        {/* Title + small status */}
         <View style={{ flex: 1 }}>
           <Text style={[styles.title, done && styles.titleDone]}>{item.title}</Text>
-          <Text style={styles.status}>{done ? 'Done' : 'Not done'}</Text>
+          <Text style={styles.status}>{done ? `Done · ${selectedDateLabel}` : 'Not done'}</Text>
         </View>
 
-        {/* 3-dots menu */}
         <Pressable
-          onPress={(e) => {
-            e?.stopPropagation?.();
-            openMenu(item);
-          }}
+          onPress={(e) => { e?.stopPropagation?.(); openMenu(item); }}
           onPressIn={(e) => e?.stopPropagation?.()}
           style={styles.menuBtn}
         >
-          <MaterialCommunityIcons
-            name="dots-vertical"
-            size={22}
-            color={colors.textSecondary}
-          />
+          <MaterialCommunityIcons name="dots-vertical" size={22} color={colors.textSecondary} />
         </Pressable>
       </Pressable>
     );
@@ -137,22 +129,31 @@ export default function GoalsScreen({
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Routines</Text>
-      <Text style={styles.subtext}>Tap a routine to mark it done.</Text>
 
-      <View style={styles.row}>
-        <TextInput
-          value={title}
-          onChangeText={setTitle}
-          placeholder="New routine (e.g. Drink water)"
-          placeholderTextColor={colors.mutedText}
-          style={styles.input}
-          returnKeyType="done"
-          onSubmitEditing={handleAdd}
-        />
-        <Pressable style={styles.addBtn} onPress={handleAdd}>
-          <Text style={styles.addText}>Add</Text>
-        </Pressable>
+      {/* Date context banner */}
+      <View style={[styles.dateBanner, { backgroundColor: colors.accentTint, borderColor: colors.accent }]}>
+        <MaterialCommunityIcons name="calendar" size={14} color={colors.accent} />
+        <Text style={[styles.dateBannerText, { color: colors.accent }]}>
+          {isToday ? 'Showing today\'s progress' : `Showing progress for ${selectedDateLabel}`}
+        </Text>
       </View>
+
+      {isToday && (
+        <View style={styles.row}>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            placeholder="New routine (e.g. Drink water)"
+            placeholderTextColor={colors.mutedText}
+            style={styles.input}
+            returnKeyType="done"
+            onSubmitEditing={handleAdd}
+          />
+          <Pressable style={styles.addBtn} onPress={handleAdd}>
+            <Text style={styles.addText}>Add</Text>
+          </Pressable>
+        </View>
+      )}
 
       <Pressable style={styles.syncBtn} onPress={onRefresh} disabled={loading}>
         <MaterialCommunityIcons
@@ -175,7 +176,7 @@ export default function GoalsScreen({
         renderItem={renderItem}
       />
 
-      {/* MENU MODAL (Edit / Statistics / Delete) */}
+      {/* MENU MODAL */}
       <Modal visible={!!menuRoutine} transparent animationType="fade" onRequestClose={closeMenu}>
         <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
           <Pressable style={styles.menuCard} onPress={() => {}}>
@@ -224,8 +225,10 @@ export default function GoalsScreen({
             </View>
 
             <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Status</Text>
-              <Text style={styles.statsValue}>{statsRoutine?.done ? 'Done' : 'Not done'}</Text>
+              <Text style={styles.statsLabel}>Status on {selectedDateLabel}</Text>
+              <Text style={styles.statsValue}>
+                {statsRoutine && completions.has(statsRoutine.id) ? 'Done ✅' : 'Not done'}
+              </Text>
             </View>
 
             <View style={styles.statsRow}>
@@ -261,7 +264,6 @@ export default function GoalsScreen({
               <Pressable style={[styles.editBtn, styles.editBtnGhost]} onPress={() => setEditRoutine(null)}>
                 <Text style={styles.editBtnGhostText}>Cancel</Text>
               </Pressable>
-
               <Pressable style={[styles.editBtn, styles.editBtnPrimary]} onPress={submitEdit}>
                 <Text style={styles.editBtnPrimaryText}>Save</Text>
               </Pressable>
@@ -277,51 +279,36 @@ function makeStyles(colors) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background, paddingTop: 56, paddingHorizontal: 18 },
     heading: { fontSize: 30, fontWeight: '900', color: colors.textPrimary },
-    subtext: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
 
-    row: { flexDirection: 'row', gap: 10, marginTop: 14 },
+    dateBanner: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      borderWidth: 1, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12,
+      marginTop: 8, marginBottom: 4,
+    },
+    dateBannerText: { fontSize: 13, fontWeight: '800' },
+
+    row: { flexDirection: 'row', gap: 10, marginTop: 10 },
     input: {
-      flex: 1,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 14,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      color: colors.textPrimary,
-      fontWeight: '700',
+      flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+      color: colors.textPrimary, fontWeight: '700',
     },
     addBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingHorizontal: 18, justifyContent: 'center' },
     addText: { color: '#fff', fontWeight: '900' },
 
     syncBtn: {
-      marginTop: 10,
-      alignSelf: 'flex-start',
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: 12,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
+      marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center',
+      gap: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12,
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
     },
     syncText: { color: colors.accent, fontWeight: '900' },
 
     empty: { textAlign: 'center', marginTop: 18, color: colors.mutedText, fontWeight: '700' },
 
     card: {
-      flexDirection: 'row',
-      gap: 12,
-      alignItems: 'center',
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 16,
-      paddingVertical: 14,
-      paddingHorizontal: 14,
-      marginBottom: 10,
+      flexDirection: 'row', gap: 12, alignItems: 'center',
+      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 16, paddingVertical: 14, paddingHorizontal: 14, marginBottom: 10,
     },
     cardDone: { backgroundColor: colors.accentTint },
     checkWrap: { width: 38, alignItems: 'center', justifyContent: 'center' },
@@ -331,19 +318,12 @@ function makeStyles(colors) {
     status: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
 
     menuBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surface,
+      width: 42, height: 42, borderRadius: 14,
+      alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
     },
 
     modalBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.35)',
-      justifyContent: 'center',
-      paddingHorizontal: 18,
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: 18,
     },
 
     menuCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: colors.border },
@@ -363,14 +343,9 @@ function makeStyles(colors) {
     editCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
     editTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 10 },
     editInput: {
-      backgroundColor: colors.background,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 14,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-      color: colors.textPrimary,
-      fontWeight: '700',
+      backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border,
+      borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12,
+      color: colors.textPrimary, fontWeight: '700',
     },
     editRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'flex-end' },
     editBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14 },

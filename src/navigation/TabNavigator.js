@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, AppState, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -8,7 +8,7 @@ import StatsScreen from '../screens/StatsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 import { useStore, useAtomValue } from 'jotai';
-import { routinesAtom, routinesLoadingAtom } from '../store/atoms';
+import { routinesAtom, routinesLoadingAtom, selectedDateAtom } from '../store/atoms';
 import {
   refreshRoutines,
   createRoutine,
@@ -16,6 +16,7 @@ import {
   removeRoutine,
   editRoutineTitle,
 } from '../store/routinesActions';
+import { todayString } from '../services/routinesApi';
 
 import { useThemeColors } from '../styles/useThemeColors';
 
@@ -27,9 +28,11 @@ export default function TabNavigator({ onToggleTheme }) {
   const loading = useAtomValue(routinesLoadingAtom);
 
   const [activeTab, setActiveTab] = useState('Home');
-
   const [addOpen, setAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+
+  const appState = useRef(AppState.currentState);
+  const lastDateRef = useRef(todayString());
 
   const tabs = useMemo(
     () => [
@@ -44,14 +47,35 @@ export default function TabNavigator({ onToggleTheme }) {
 
   async function refresh() {
     try {
-      await refreshRoutines(store.get, store.set);
+      // Always refresh for the currently selected date
+      const date = store.get(selectedDateAtom);
+      await refreshRoutines(store.get, store.set, date);
     } catch (e) {
       Alert.alert('Error', e?.message ?? 'Failed to load routines');
     }
   }
 
+  // Initial load
   useEffect(() => {
     refresh();
+  }, []);
+
+  // Re-check when app comes back to foreground — if date changed, reset to today
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === 'active') {
+        const today = todayString();
+        if (lastDateRef.current !== today) {
+          lastDateRef.current = today;
+          // Reset selected date to today and refresh
+          store.set(selectedDateAtom, new Date());
+          refresh();
+        }
+      }
+      appState.current = nextState;
+    });
+
+    return () => sub.remove();
   }, []);
 
   async function onAdd(title) {
@@ -138,7 +162,6 @@ export default function TabNavigator({ onToggleTheme }) {
               <Pressable style={[styles.modalBtn, styles.modalBtnGhost, { backgroundColor: c.background, borderColor: c.border }]} onPress={() => setAddOpen(false)}>
                 <Text style={[styles.modalBtnGhostText, { color: c.textPrimary }]}>Cancel</Text>
               </Pressable>
-
               <Pressable style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: c.accent }]} onPress={submitAdd}>
                 <Text style={styles.modalBtnPrimaryText}>Add</Text>
               </Pressable>
@@ -150,7 +173,6 @@ export default function TabNavigator({ onToggleTheme }) {
       <View style={[styles.tabBar, { backgroundColor: c.surface }]}>
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
-
           return (
             <Pressable
               key={tab.key}
@@ -184,47 +206,26 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
 
   tabBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 18, paddingTop: 10, paddingBottom: 14,
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 14,
+    shadowOffset: { width: 0, height: -4 }, elevation: 12,
   },
   tabButton: { flex: 1, paddingVertical: 8, alignItems: 'center', justifyContent: 'center' },
   tabButtonActive: { transform: [{ translateY: -1 }] },
   plusButton: {
-    flex: 0,
-    width: 54,
-    height: 54,
-    marginHorizontal: 8,
-    marginTop: -28,
-    borderRadius: 27,
-    elevation: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 0, width: 54, height: 54, marginHorizontal: 8, marginTop: -28,
+    borderRadius: 27, elevation: 8, alignItems: 'center', justifyContent: 'center',
   },
   tabLabel: { marginTop: 4, fontSize: 11, fontWeight: '600' },
 
   modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    paddingHorizontal: 18,
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: 18,
   },
   modalCard: { borderRadius: 18, padding: 16, borderWidth: 1 },
   modalTitle: { fontSize: 18, fontWeight: '900', marginBottom: 10 },
   modalInput: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontWeight: '700',
+    borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontWeight: '700',
   },
   modalRow: { flexDirection: 'row', gap: 10, marginTop: 12, justifyContent: 'flex-end' },
   modalBtn: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 14 },
