@@ -39,10 +39,7 @@ export default function GoalsScreen({
 
   function handleAdd() {
     const t = title.trim();
-    if (!t) {
-      Alert.alert('Missing', 'Type a routine name first.');
-      return;
-    }
+    if (!t) { Alert.alert('Missing', 'Type a routine name first.'); return; }
     onAdd(t);
     setTitle('');
   }
@@ -65,10 +62,7 @@ export default function GoalsScreen({
 
   async function submitEdit() {
     const t = editTitle.trim();
-    if (!t) {
-      Alert.alert('Missing', 'Title cannot be empty.');
-      return;
-    }
+    if (!t) { Alert.alert('Missing', 'Title cannot be empty.'); return; }
     try {
       await onEditTitle(editRoutine.id, t);
       setEditRoutine(null);
@@ -82,8 +76,28 @@ export default function GoalsScreen({
     weekday: 'short', month: 'short', day: 'numeric',
   });
 
+  const doneCount = routines.filter((r) => completions.has(r.id)).length;
+  const totalCount = routines.length;
+  const pct = totalCount === 0 ? 0 : Math.round((doneCount / totalCount) * 100);
+
+  function createdText(r) {
+    if (!r?.created_at) return '—';
+    const d = new Date(r.created_at);
+    if (Number.isNaN(d.getTime())) return String(r.created_at);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function daysActive(r) {
+    if (!r?.created_at) return null;
+    const d = new Date(r.created_at);
+    if (Number.isNaN(d.getTime())) return null;
+    const diff = Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Added today';
+    if (diff === 1) return 'Added yesterday';
+    return `Active for ${diff} days`;
+  }
+
   const renderItem = ({ item }) => {
-    // done = whether this routine is in completions for the selected date
     const done = completions.has(item.id);
 
     return (
@@ -119,13 +133,6 @@ export default function GoalsScreen({
     );
   };
 
-  const createdText = (r) => {
-    if (!r?.created_at) return '—';
-    const d = new Date(r.created_at);
-    if (Number.isNaN(d.getTime())) return String(r.created_at);
-    return d.toLocaleString();
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Routines</Text>
@@ -134,7 +141,7 @@ export default function GoalsScreen({
       <View style={[styles.dateBanner, { backgroundColor: colors.accentTint, borderColor: colors.accent }]}>
         <MaterialCommunityIcons name="calendar" size={14} color={colors.accent} />
         <Text style={[styles.dateBannerText, { color: colors.accent }]}>
-          {isToday ? 'Showing today\'s progress' : `Showing progress for ${selectedDateLabel}`}
+          {isToday ? "Showing today's progress" : `Showing progress for ${selectedDateLabel}`}
         </Text>
       </View>
 
@@ -155,17 +162,6 @@ export default function GoalsScreen({
         </View>
       )}
 
-      <Pressable style={styles.syncBtn} onPress={onRefresh} disabled={loading}>
-        <MaterialCommunityIcons
-          name="sync"
-          size={18}
-          color={loading ? colors.mutedText : colors.accent}
-        />
-        <Text style={[styles.syncText, loading && { color: colors.mutedText }]}>
-          {loading ? 'Syncing…' : 'Sync'}
-        </Text>
-      </Pressable>
-
       <FlatList
         data={routines}
         keyExtractor={(item) => String(item.id)}
@@ -176,7 +172,7 @@ export default function GoalsScreen({
         renderItem={renderItem}
       />
 
-      {/* MENU MODAL */}
+      {/* ── MENU MODAL ── */}
       <Modal visible={!!menuRoutine} transparent animationType="fade" onRequestClose={closeMenu}>
         <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
           <Pressable style={styles.menuCard} onPress={() => {}}>
@@ -213,37 +209,75 @@ export default function GoalsScreen({
         </Pressable>
       </Modal>
 
-      {/* STATS MODAL */}
+      {/* ── STATS MODAL ── */}
       <Modal visible={!!statsRoutine} transparent animationType="fade" onRequestClose={() => setStatsRoutine(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setStatsRoutine(null)}>
           <Pressable style={styles.statsCard} onPress={() => {}}>
-            <Text style={styles.statsTitle}>Routine stats</Text>
 
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Title</Text>
-              <Text style={styles.statsValue}>{statsRoutine?.title ?? '—'}</Text>
+            <View style={styles.statsHeader}>
+              <View style={[styles.statsIconWrap, { backgroundColor: colors.accentTint }]}>
+                <MaterialCommunityIcons name="clipboard-check-outline" size={22} color={colors.accent} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={styles.statsTitle}>{statsRoutine?.title ?? '—'}</Text>
+                <Text style={[styles.statsSubtitle, { color: colors.mutedText }]}>
+                  {daysActive(statsRoutine)}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Status on {selectedDateLabel}</Text>
-              <Text style={styles.statsValue}>
-                {statsRoutine && completions.has(statsRoutine.id) ? 'Done ✅' : 'Not done'}
+            {(() => {
+              const isDone = statsRoutine && completions.has(statsRoutine.id);
+              return (
+                <View style={[
+                  styles.statusBadge,
+                  { backgroundColor: isDone ? 'rgba(52,195,143,0.12)' : colors.accentTint,
+                    borderColor: isDone ? '#34C38F' : colors.border }
+                ]}>
+                  <MaterialCommunityIcons
+                    name={isDone ? 'check-circle' : 'clock-outline'}
+                    size={16}
+                    color={isDone ? '#34C38F' : colors.mutedText}
+                  />
+                  <Text style={[styles.statusBadgeText, { color: isDone ? '#34C38F' : colors.mutedText }]}>
+                    {isDone ? `Completed on ${selectedDateLabel}` : `Not done on ${selectedDateLabel}`}
+                  </Text>
+                </View>
+              );
+            })()}
+
+            <View style={[styles.statsGrid, { borderColor: colors.border }]}>
+              <View style={styles.statsGridItem}>
+                <Text style={[styles.statsGridVal, { color: colors.accent }]}>{doneCount}/{totalCount}</Text>
+                <Text style={[styles.statsGridLabel, { color: colors.mutedText }]}>Done today</Text>
+              </View>
+              <View style={[styles.statsGridDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.statsGridItem}>
+                <Text style={[styles.statsGridVal, { color: colors.accent }]}>{pct}%</Text>
+                <Text style={[styles.statsGridLabel, { color: colors.mutedText }]}>Day rate</Text>
+              </View>
+              <View style={[styles.statsGridDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.statsGridItem}>
+                <Text style={[styles.statsGridVal, { color: colors.accent }]}>{totalCount}</Text>
+                <Text style={[styles.statsGridLabel, { color: colors.mutedText }]}>Total</Text>
+              </View>
+            </View>
+
+            <View style={[styles.statsInfoRow, { borderColor: colors.border }]}>
+              <MaterialCommunityIcons name="calendar-plus" size={15} color={colors.mutedText} />
+              <Text style={[styles.statsInfoText, { color: colors.mutedText }]}>
+                Created {createdText(statsRoutine)}
               </Text>
             </View>
 
-            <View style={styles.statsRow}>
-              <Text style={styles.statsLabel}>Created</Text>
-              <Text style={styles.statsValue}>{createdText(statsRoutine)}</Text>
-            </View>
-
-            <Pressable style={styles.statsCloseBtn} onPress={() => setStatsRoutine(null)}>
+            <Pressable style={[styles.statsCloseBtn, { backgroundColor: colors.accent }]} onPress={() => setStatsRoutine(null)}>
               <Text style={styles.statsCloseText}>Close</Text>
             </Pressable>
           </Pressable>
         </Pressable>
       </Modal>
 
-      {/* EDIT MODAL */}
+      {/* ── EDIT MODAL ── */}
       <Modal visible={!!editRoutine} transparent animationType="fade" onRequestClose={() => setEditRoutine(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setEditRoutine(null)}>
           <Pressable style={styles.editCard} onPress={() => {}}>
@@ -296,13 +330,6 @@ function makeStyles(colors) {
     addBtn: { backgroundColor: colors.accent, borderRadius: 14, paddingHorizontal: 18, justifyContent: 'center' },
     addText: { color: '#fff', fontWeight: '900' },
 
-    syncBtn: {
-      marginTop: 10, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center',
-      gap: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 12,
-      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
-    },
-    syncText: { color: colors.accent, fontWeight: '900' },
-
     empty: { textAlign: 'center', marginTop: 18, color: colors.mutedText, fontWeight: '700' },
 
     card: {
@@ -312,32 +339,46 @@ function makeStyles(colors) {
     },
     cardDone: { backgroundColor: colors.accentTint },
     checkWrap: { width: 38, alignItems: 'center', justifyContent: 'center' },
-
     title: { fontSize: 18, fontWeight: '900', color: colors.textPrimary },
     titleDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
     status: { marginTop: 6, color: colors.textSecondary, fontWeight: '700' },
-
     menuBtn: {
       width: 42, height: 42, borderRadius: 14,
       alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface,
     },
 
     modalBackdrop: {
-      flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', paddingHorizontal: 18,
+      flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', paddingHorizontal: 18,
     },
 
     menuCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 14, borderWidth: 1, borderColor: colors.border },
     menuTitle: { fontSize: 16, fontWeight: '900', color: colors.textPrimary, marginBottom: 8 },
     menuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 10, borderRadius: 12 },
     menuItemText: { fontWeight: '800', color: colors.textPrimary },
-    menuDivider: { height: 1, backgroundColor: colors.border, marginVertical: 8, opacity: 0.9 },
+    menuDivider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
 
-    statsCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
-    statsTitle: { fontSize: 18, fontWeight: '900', color: colors.textPrimary, marginBottom: 12 },
-    statsRow: { marginBottom: 10 },
-    statsLabel: { color: colors.mutedText, fontWeight: '800' },
-    statsValue: { marginTop: 4, color: colors.textPrimary, fontWeight: '800' },
-    statsCloseBtn: { marginTop: 8, alignSelf: 'flex-end', backgroundColor: colors.accent, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+    statsCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: colors.border },
+    statsHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+    statsIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    statsTitle: { fontSize: 17, fontWeight: '900', color: colors.textPrimary },
+    statsSubtitle: { fontSize: 12, fontWeight: '700', marginTop: 2 },
+
+    statusBadge: {
+      flexDirection: 'row', alignItems: 'center', gap: 6,
+      borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, marginBottom: 16,
+    },
+    statusBadgeText: { fontWeight: '800', fontSize: 13 },
+
+    statsGrid: { flexDirection: 'row', borderWidth: 1, borderRadius: 14, overflow: 'hidden', marginBottom: 14 },
+    statsGridItem: { flex: 1, alignItems: 'center', paddingVertical: 14 },
+    statsGridVal: { fontSize: 20, fontWeight: '900' },
+    statsGridLabel: { fontSize: 11, fontWeight: '700', marginTop: 3 },
+    statsGridDivider: { width: 1 },
+
+    statsInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, borderTopWidth: 1, paddingTop: 12, marginBottom: 14 },
+    statsInfoText: { fontSize: 12, fontWeight: '700' },
+
+    statsCloseBtn: { alignSelf: 'flex-end', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 20 },
     statsCloseText: { color: '#fff', fontWeight: '900' },
 
     editCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border },
