@@ -27,5 +27,5 @@ showing your real progress — day by day.
 1. Clone the repo
 2. Run `npm install`
 3. Add your Supabase credentials to `.env`:
-4. Run `npx expo start`
+4. Run `npx expo start -c`
 
