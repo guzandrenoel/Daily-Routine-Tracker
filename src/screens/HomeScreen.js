@@ -43,17 +43,29 @@ function get5DayStrip(centerDate) {
   return days;
 }
 
+// ── Theme pill: yellow sun in light mode, purple/indigo moon in dark mode ──
 function ThemePill({ isDarkMode, onToggle, colors: c }) {
+  const thumbColor = isDarkMode ? '#7C6FF7' : '#F5A623';
+  const trackColor = isDarkMode
+    ? 'rgba(124,111,247,0.18)'
+    : 'rgba(245,166,35,0.18)';
+  const borderColor = isDarkMode
+    ? 'rgba(124,111,247,0.45)'
+    : 'rgba(245,166,35,0.55)';
+
   return (
     <Pressable
       onPress={onToggle}
-      style={[styles.pill, { backgroundColor: c.surface, borderColor: c.border }]}
+      style={[
+        styles.pill,
+        { backgroundColor: trackColor, borderColor },
+      ]}
     >
       <View
         style={[
           styles.pillThumb,
           {
-            backgroundColor: c.accent,
+            backgroundColor: thumbColor,
             transform: [{ translateX: isDarkMode ? 26 : 0 }],
           },
         ]}
@@ -77,16 +89,14 @@ export default function HomeScreen({ onToggleTheme }) {
   const c = isDarkMode ? darkTheme.colors : lightTheme.colors;
 
   const days = useMemo(() => get5DayStrip(selectedDate), [selectedDate]);
-
   const quote = useMemo(() => QUOTES[new Date().getDay() % QUOTES.length], []);
 
-  // When user taps a different date, update the shared atom and fetch that day's completions
   async function handleDateSelect(date) {
     setSelectedDateAtom(date);
     try {
       await loadCompletionsForDate(store.get, store.set, date);
     } catch (e) {
-      // silently fail — UI will just show stale completions
+      // silently fail
     }
   }
 
@@ -167,9 +177,7 @@ export default function HomeScreen({ onToggleTheme }) {
             <Svg width={size} height={size}>
               <Circle cx={cx} cy={cy} r={r} stroke={c.border} strokeWidth={stroke} fill="transparent" />
               <Circle
-                cx={cx}
-                cy={cy}
-                r={r}
+                cx={cx} cy={cy} r={r}
                 stroke={c.accent}
                 strokeWidth={stroke}
                 fill="transparent"
@@ -215,10 +223,12 @@ const styles = StyleSheet.create({
   subtext: { marginTop: 4, fontSize: 13, fontWeight: '600' },
 
   pill: {
-    width: 58, height: 32, borderRadius: 16, borderWidth: 1, padding: 3, justifyContent: 'center',
+    width: 58, height: 32, borderRadius: 16,
+    borderWidth: 1.5, padding: 3, justifyContent: 'center',
   },
   pillThumb: {
-    width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
+    width: 26, height: 26, borderRadius: 13,
+    alignItems: 'center', justifyContent: 'center',
   },
 
   quoteCard: {
