@@ -22,27 +22,10 @@ showing your real progress — day by day.
 - React Native SVG
 - Expo AV (sound effects)
 
-## Database Schema
-
-### routines
-| column | type |
-|---|---|
-| id | uuid |
-| title | text |
-| done | bool |
-| created_at | timestamptz |
-
-### completions
-| column | type |
-|---|---|
-| id | uuid |
-| routine_id | uuid (FK → routines) |
-| completed_date | text (YYYY-MM-DD) |
-| created_at | timestamptz |
-
 ## Getting Started
 
 1. Clone the repo
 2. Run `npm install`
 3. Add your Supabase credentials to `.env`:
 4. Run `npx expo start`
+
